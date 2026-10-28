@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MindGym v1.0 – Nền móng</title>
+<!--
+  MindGym v1.0 – Học viện Chiến lược (chế độ NL) · bản thử "Nền móng tuần 1"
+  Changelog (28/10/2026):
+  - Bản đầu tiên, một file, chạy không cần mạng (không tải thư viện ngoài).
+  - Lõi học: 5 bậc thuộc (Làm quen → Nhận ra → Phân biệt → Nhớ ra → Phản xạ), ôn ngắt quãng Leitner 1–2–4–7–15 ngày.
+  - Buổi 15 phút: T2–T6 học mới 4 mục cùng nhóm · ôn thẻ đến hạn · luyện; T7 kiểm tra trộn; CN nghỉ + 1 tình huống nhẹ.
+  - Hai phanh: thẻ cần ôn > 40 thì dừng học mới; NẾU–THÌ 60 giây chỉ mở từ tuần 2 khi ≥ 10 mục đạt bậc 5.
+  - Dữ liệu nhúng sẵn: tuần 1 (18 mục ưu tiên cao nhất: 10 khung tư duy, 4 QL kinh tế, 4 QL lãnh đạo) + 20 tình huống.
+  - Thứ tự học theo độ ưu tiên (phổ biến + quan trọng + hay dùng); mỗi ngày 3–5 mục cùng nhóm. Nhập thêm mindgym_data_NL_tong-hop_v1.xlsx/.json.
+  - Nhiều hồ sơ trên một máy; xuất/nhập tiến độ .json; giao diện tối/sáng; phím tắt 1–4, Enter, Space.
+  - Trò Phòng cấp cứu 90 giây (tuần 7) và Domino (tuần 16) mới hiện thẻ khoá, chưa chơi được.
+-->
+<style>
+:root{
+  --bg:#0f1724;--panel:#172235;--panel2:#1d2b42;--line:#2a3b57;--text:#e8eef7;--muted:#9fb0c8;
+  --accent:#3fc1b0;--accent-ink:#06231f;--good:#47c47a;--bad:#ef6b6b;--warn:#f0b54a;
+  --b0:#4a5870;--b1:#64748b;--b2:#4f8fe6;--b3:#9a7cf0;--b4:#e8a33d;--b5:#3fbf7f;
+  --radius:14px;--shadow:0 6px 20px rgba(0,0,0,.25);
+}
+:root[data-theme="light"]{
+  --bg:#f4f6fa;--panel:#ffffff;--panel2:#eef2f8;--line:#d7deea;--text:#16202f;--muted:#5b6b82;
+  --accent:#0f8f80;--accent-ink:#ffffff;--good:#1f9d55;--bad:#d64545;--warn:#b7791f;
+  --b0:#c3ccd9;--b1:#94a3b8;--b2:#3b7dd8;--b3:#7c5cd6;--b4:#d28a1e;--b5:#22a06b;
+  --shadow:0 4px 14px rgba(20,30,50,.08);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;font-size:16px;line-height:1.5;-webkit-text-size-adjust:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:center;gap:10px;min-height:56px}
+.logo{font-weight:800;letter-spacing:.2px}
+.logo b{color:var(--accent)}
+.sub{color:var(--muted);font-size:14px}
+.sp{flex:1}
+.iconbtn{font-size:22px;line-height:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;min-width:44px;min-height:44px;cursor:pointer}
+main{padding:16px 0 96px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);z-index:6}
+nav.tabs .wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:6px 8px}
+nav.tabs button{background:none;border:0;border-radius:10px;min-height:52px;cursor:pointer;color:var(--muted);font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+nav.tabs button .ic{font-size:19px;line-height:1}
+nav.tabs button.on{color:var(--accent);background:var(--panel2);font-weight:600}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin:0 0 14px;box-shadow:var(--shadow)}
+.card h2{margin:0 0 8px;font-size:20px}
+.card h3{margin:0 0 8px;font-size:17px}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.stat{background:var(--panel2);border-radius:12px;padding:10px 12px}
+.stat .n{font-size:24px;font-weight:800}
+.stat .l{font-size:13px;color:var(--muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:10px 18px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;font-weight:600;text-align:center}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.good{background:var(--good);border-color:var(--good);color:#fff}
+.btn.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.btn.ghost{background:transparent}
+.btn.block{width:100%}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.pill{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+.pill.acc{color:var(--accent);border-color:var(--accent)}
+.plan{list-style:none;margin:8px 0 0;padding:0}
+.plan li{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.plan li:first-child{border-top:0}
+.plan .t{min-width:44px;font-weight:700;color:var(--accent)}
+.warn{border-left:4px solid var(--warn);background:color-mix(in srgb,var(--warn) 12%,transparent);padding:10px 12px;border-radius:8px;margin:10px 0}
+.ok{border-left:4px solid var(--good);background:color-mix(in srgb,var(--good) 12%,transparent);padding:10px 12px;border-radius:8px;margin:10px 0}
+.err{border-left:4px solid var(--bad);background:color-mix(in srgb,var(--bad) 12%,transparent);padding:10px 12px;border-radius:8px;margin:10px 0}
+/* session */
+.phasebar{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.phasebar .steps{display:flex;gap:6px;flex:1}
+.phasebar .st{flex:1;height:6px;border-radius:6px;background:var(--line)}
+.phasebar .st.on{background:var(--accent)}
+.phasebar .st.done{background:color-mix(in srgb,var(--accent) 55%,var(--line))}
+.clock{font-variant-numeric:tabular-nums;font-weight:700;min-width:52px;text-align:right}
+.clock.over{color:var(--warn)}
+.flash{font-size:13px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.face{border-top:1px dashed var(--line);padding-top:10px;margin-top:10px}
+.face .k{font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.4px}
+.face .v{margin-top:2px}
+.title{font-size:21px;font-weight:800;line-height:1.3}
+.origin{font-size:13px;color:var(--muted);margin-top:2px}
+.q{font-size:18px;font-weight:600;margin:6px 0 12px}
+.qlabel{font-size:13px;color:var(--muted)}
+.opts{display:grid;gap:10px}
+.opt{display:flex;gap:12px;align-items:flex-start;text-align:left;width:100%;min-height:52px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);cursor:pointer}
+.opt .key{flex:0 0 26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--panel);border:1px solid var(--line);font-weight:700;font-size:14px}
+.opt.right{border-color:var(--good);background:color-mix(in srgb,var(--good) 18%,var(--panel2))}
+.opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 18%,var(--panel2))}
+.opt:disabled{cursor:default}
+textarea,input[type=text],input[type=date],input[type=number],select{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:46px}
+textarea{min-height:96px;resize:vertical}
+.bacbar{display:flex;gap:4px;margin:8px 0}
+.bacbar span{flex:1;height:8px;border-radius:4px;background:var(--line)}
+.chip{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:34px;padding:0 8px;border-radius:9px;font-size:13px;font-weight:700;color:#fff;margin:0 6px 6px 0;cursor:pointer;border:0}
+.b0{background:var(--b0)}.b1{background:var(--b1)}.b2{background:var(--b2)}.b3{background:var(--b3)}.b4{background:var(--b4)}.b5{background:var(--b5)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl td,.tbl th{border-top:1px solid var(--line);padding:7px 6px;text-align:left;vertical-align:top}
+.tbl tr.cur td{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.lock{opacity:.6}
+.hl{color:var(--accent);font-weight:700}
+.timer{height:6px;border-radius:6px;background:var(--line);overflow:hidden;margin:6px 0 12px}
+.timer i{display:block;height:100%;background:var(--accent);width:100%}
+.timer.total i{background:var(--warn)}
+.big{font-size:40px;font-weight:800}
+details summary{cursor:pointer;color:var(--accent);font-weight:600;min-height:32px}
+.kbd{font-family:ui-monospace,Consolas,monospace;font-size:12px;border:1px solid var(--line);border-radius:5px;padding:0 5px;color:var(--muted)}
+.center{text-align:center}
+.mt{margin-top:12px}
+.hidden{display:none}
+.toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:9;font-size:14px;max-width:90vw}
+@media (max-width:420px){.title{font-size:19px}.q{font-size:17px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div><div class="logo">Mind<b>Gym</b> <span class="pill">v1.0</span></div><div class="sub" id="hdrSub"></div></div>
+  <div class="sp"></div>
+  <button class="iconbtn" data-act="theme" title="Đổi giao diện sáng/tối" aria-label="Đổi giao diện">◐</button>
+</div></header>
+<main><div class="wrap" id="app"></div></main>
+<nav class="tabs" aria-label="Tab chính"><div class="wrap">
+  <button data-tab="today"><span class="ic">◉</span>Hôm nay</button>
+  <button data-tab="academy"><span class="ic">▦</span>Học viện</button>
+  <button data-tab="book"><span class="ic">☰</span>Sổ tay</button>
+  <button data-tab="settings"><span class="ic">⚙</span>Cài đặt</button>
+</div></nav>
+
+<script>
+const EMBED = {"ten": "Nền móng tuần 1", "muc": [{"id": "KHUNG-01", "thu_tu": 1, "tuan": 1, "ngay": 1, "nhom_hoc": "Khung tư duy", "uu_tien": 15, "muc_uu_tien": "A – cốt lõi", "loai": "khung", "nhom": "Khung – Nạp & quản lý", "ten": "Tư duy nhanh – chính xác 5 bước", "ten_goc": "Tổng hợp: Cynefin (Snowden), cửa 1 chiều/2 chiều (Bezos), RPD (Klein), Pre-mortem (Klein), Decision Journal", "neu": "Gặp một tình huống cần quyết định nhanh mà vẫn phải đúng", "thi": "Nạp mẫu hình → 10 giây định vị (loại tình huống, làm lại được không) → chạy thử trong đầu → chặn điểm mù → ghi nhật ký", "chuoi": "", "vi_du": "Khách hủy đơn lớn: 10 giây thấy là việc làm lại được (cửa 2 chiều) → đủ 70% thông tin thì gọi đàm phán ngay.", "gioi_han": "Không thay được chuyên môn: thiếu \"thư viện mẫu hình\" thì bước 3 chỉ là đoán. Quyết định cửa 1 chiều bắt buộc đi chậm qua bước 3–4.", "tu_khoa": "quyết định nhanh, 10 giây, Cynefin, cửa 1 chiều, 70%", "dieu_kien": "", "phong_ve": "", "de_nham_voi": ""}, {"id": "KHUNG-03", "thu_tu": 2, "tuan": 1, "ngay": 1, "nhom_hoc": "Khung tư duy", "uu_tien": 15, "muc_uu_tien": "A – cốt lõi", "loai": "khung", "nhom": "Khung – Nạp & quản lý", "ten": "Nguyên lý Pareto 80/20", "ten_goc": "Pareto principle – Vilfredo Pareto; Joseph Juran đặt tên \"số ít then chốt\"", "neu": "Nguồn lực có hạn mà việc cần làm thì nhiều", "thi": "Tìm số ít nguyên nhân tạo phần lớn kết quả và dồn sức vào đó trước", "chuoi": "", "vi_du": "20% dạng bài chiếm 80% điểm thi → ôn kỹ các dạng đó trước. Vài khách hàng lớn tạo phần lớn doanh thu.", "gioi_han": "80/20 là xu hướng, không phải tỷ lệ cố định (có thể 70/30, 90/10). Phải đo bằng số liệu, không đoán.", "tu_khoa": "ưu tiên, trọng tâm, số ít, phần lớn kết quả", "dieu_kien": "", "phong_ve": "", "de_nham_voi": "KHUNG-02"}, {"id": "KHUNG-06", "thu_tu": 3, "tuan": 1, "ngay": 1, "nhom_hoc": "Khung tư duy", "uu_tien": 15, "muc_uu_tien": "A – cốt lõi", "loai": "khung", "nhom": "Khung – Chẩn đoán", "ten": "5 Whys – hỏi \"Vì sao?\" 5 lần", "ten_goc": "5 Whys – Sakichi Toyoda, Hệ thống sản xuất Toyota (Taiichi Ohno)", "neu": "Sự cố lặp lại, cần tìm nguyên nhân gốc", "thi": "Hỏi \"Vì sao?\" nối tiếp trên câu trả lời trước, đến khi chạm nguyên nhân có thể xử lý (khoảng 5 lần)", "chuoi": "", "vi_du": "Máy dừng → quá tải → thiếu dầu → bơm hỏng → không có lịch bảo trì → lập lịch bảo trì.", "gioi_han": "Dễ đi theo một nhánh duy nhất và dừng ở nguyên nhân mình nghĩ sẵn; mỗi bước cần dữ kiện kiểm chứng. Số 5 chỉ là ước lệ.", "tu_khoa": "lặp lại, nguyên nhân gốc, vì sao, sự cố", "dieu_kien": "", "phong_ve": "", "de_nham_voi": "KHUNG-07"}, {"id": "KHUNG-05", "thu_tu": 4, "tuan": 1, "ngay": 1, "nhom_hoc": "Khung tư duy", "uu_tien": 14, "muc_uu_tien": "A – cốt lõi", "loai": "khung", "nhom": "Khung – Chẩn đoán", "ten": "5W1H", "ten_goc": "5W1H (Kipling, \"six honest serving-men\"); dùng trong quản lý chất lượng", "neu": "Cần mô tả đủ một vấn đề trước khi phân tích", "thi": "Hỏi Ai · Cái gì · Ở đâu · Khi nào · Vì sao · Như thế nào; ghi dữ kiện, chưa phán xét", "chuoi": "", "vi_du": "Doanh số giảm: Ai mua ít đi? Sản phẩm nào? Khu vực nào? Từ tuần nào? Thấy lý do gì? Giảm ra sao?", "gioi_han": "Chỉ là khung thu thập dữ kiện, không tự tìm ra nguyên nhân gốc; câu Vì sao ở đây chỉ là sơ bộ.", "tu_khoa": "mô tả vấn đề, dữ kiện, ai, khi nào, ở đâu", "dieu_kien": "", "phong_ve": "", "de_nham_voi": "KHUNG-06"}, {"id": "KHUNG-04", "thu_tu": 5, "tuan": 1, "ngay": 2, "nhom_hoc": "Khung tư duy", "uu_tien": 13, "muc_uu_tien": "A – cốt lõi", "loai": "khung", "nhom": "Khung – Nạp & quản lý", "ten": "Hộp thời gian (Hộp cát)", "ten_goc": "Timeboxing; kỹ thuật Pomodoro – Francesco Cirillo", "neu": "Việc dễ kéo dài, cầu toàn hoặc khó bắt đầu", "thi": "Đặt trước khung giờ cố định cho việc; hết giờ thì dừng, đánh giá rồi mới quyết định làm tiếp", "chuoi": "", "vi_du": "Soạn báo cáo trong đúng 25 phút, nghỉ 5 phút; buổi tập MindGym 15 phút cũng là một hộp thời gian.", "gioi_han": "Không hợp việc cần tập trung sâu liên tục hoặc có hạn chót cứng; hộp quá ngắn làm vỡ mạch suy nghĩ.", "tu_khoa": "giới hạn thời gian, trì hoãn, 25 phút, dừng đúng giờ", "dieu_kien": "", "phong_ve": "", "de_nham_voi": ""}, {"id": "KHUNG-08", "thu_tu": 6, "tuan": 1, "ngay": 2, "nhom_hoc": "Khung tư duy", "uu_tien": 13, "muc_uu_tien": "A – cốt lõi", "loai": "khung", "nhom": "Khung – Chiến lược", "ten": "Lật ngược (Inversion)", "ten_goc": "Inversion – Carl Jacobi (\"luôn lật ngược\"); Charlie Munger phổ biến", "neu": "Lập kế hoạch hoặc mục tiêu mà khó thấy rủi ro", "thi": "Hỏi \"Điều gì chắc chắn làm hỏng việc này?\", liệt kê rồi chặn từng điều", "chuoi": "", "vi_du": "Muốn giữ nhân viên giỏi → hỏi điều gì chắc chắn làm họ nghỉ: trả lương thấp, sếp thất hứa → chặn trước.", "gioi_han": "Tránh thất bại chưa đủ tạo thành công; vẫn cần mục tiêu và cách làm chủ động.", "tu_khoa": "rủi ro, phá hỏng, ngược lại, chặn trước", "dieu_kien": "", "phong_ve": "", "de_nham_voi": "KHUNG-09"}, {"id": "KHUNG-02", "thu_tu": 7, "tuan": 1, "ngay": 2, "nhom_hoc": "Khung tư duy", "uu_tien": 12, "muc_uu_tien": "A – cốt lõi", "loai": "khung", "nhom": "Khung – Nạp & quản lý", "ten": "Gom khối (Chunking)", "ten_goc": "Chunking – George A. Miller (1956); Chase & Simon (1973) về kỳ thủ cờ vua", "neu": "Phải nhớ hoặc xử lý nhiều mảnh thông tin rời rạc", "thi": "Gom các mảnh thành vài khối có nghĩa; trí nhớ làm việc giữ khối chứ không giữ từng mảnh", "chuoi": "", "vi_du": "Số 0912345678 nhớ thành 0912 · 345 · 678. Tài liệu 15 trang gom thành 3 khối: mốc thời gian · nhân vật · ý nghĩa.", "gioi_han": "Trí nhớ làm việc chỉ giữ khoảng 4 khối (Cowan 2001). Khối phải dựa trên ý nghĩa đã hiểu; gom máy móc thì vẫn quên.", "tu_khoa": "nhiều thông tin, khó nhớ, gom nhóm, khối", "dieu_kien": "", "phong_ve": "", "de_nham_voi": "KHUNG-03"}, {"id": "KHUNG-10", "thu_tu": 8, "tuan": 1, "ngay": 3, "nhom_hoc": "Khung tư duy", "uu_tien": 12, "muc_uu_tien": "A – cốt lõi", "loai": "khung", "nhom": "Khung – Chiến lược", "ten": "Ma trận SWOT", "ten_goc": "SWOT – thường gắn với Albert Humphrey (SRI, thập niên 1960); ma trận TOWS – Heinz Weihrich", "neu": "Cần đánh giá vị thế trước khi chọn chiến lược", "thi": "Liệt kê Mạnh, Yếu (bên trong) · Cơ hội, Thách thức (bên ngoài) rồi ghép thành 4 chiến lược SO, ST, WO, WT", "chuoi": "", "vi_du": "Quán cà phê: S vị trí đẹp, W ít vốn, O khu văn phòng mới, T chuỗi lớn sắp mở → SO: bán combo cho dân văn phòng.", "gioi_han": "Danh sách dễ chủ quan, không xếp ưu tiên; phải gắn với một mục tiêu cụ thể và dữ liệu.", "tu_khoa": "vị thế, mạnh yếu, cơ hội thách thức, chiến lược", "dieu_kien": "", "phong_ve": "", "de_nham_voi": ""}, {"id": "KHUNG-07", "thu_tu": 9, "tuan": 1, "ngay": 3, "nhom_hoc": "Khung tư duy", "uu_tien": 11, "muc_uu_tien": "A – cốt lõi", "loai": "khung", "nhom": "Khung – Chẩn đoán", "ten": "Sơ đồ xương cá (6M + 8P)", "ten_goc": "Ishikawa diagram – Kaoru Ishikawa", "neu": "Vấn đề có nhiều nguyên nhân tiềm ẩn, sợ bỏ sót", "thi": "Xếp nguyên nhân vào các nhánh: 6M cho vận hành, 8P cho kinh doanh; rồi khoan 5 Whys ở nhánh nghi nhất", "chuoi": "", "vi_du": "Đơn trễ: Man (thiếu người), Method (quy trình duyệt 3 cấp), Machine (máy in hỏng), Place (kho xa)…", "gioi_han": "Là danh sách nguyên nhân có thể, chưa phải nguyên nhân thật; phải kiểm chứng bằng dữ liệu.", "tu_khoa": "nhiều nguyên nhân, bỏ sót, nhánh, 6M, 8P", "dieu_kien": "", "phong_ve": "", "de_nham_voi": "KHUNG-06"}, {"id": "KHUNG-09", "thu_tu": 10, "tuan": 1, "ngay": 3, "nhom_hoc": "Khung tư duy", "uu_tien": 10, "muc_uu_tien": "A – cốt lõi", "loai": "khung", "nhom": "Khung – Chiến lược", "ten": "Tư duy nguyên bản (First Principles)", "ten_goc": "First principles – Aristotle; phổ biến trong kỹ thuật và khởi nghiệp", "neu": "Cách làm quen đã bế tắc hoặc quá đắt", "thi": "Tách vấn đề về các sự thật cơ bản không thể chối cãi, rồi dựng lại giải pháp từ đó", "chuoi": "", "vi_du": "Bản chất báo tường = nội dung hay + dễ đọc → làm bằng lá khô, dây thừng cũ, chi phí 0 đồng.", "gioi_han": "Tốn thời gian; với việc thường ngày, dùng kinh nghiệm hoặc phép so sánh nhanh hơn.", "tu_khoa": "bế tắc, bản chất, sự thật cơ bản, làm lại từ đầu", "dieu_kien": "", "phong_ve": "", "de_nham_voi": "KHUNG-08"}, {"id": "QL-KT-01", "thu_tu": 11, "tuan": 1, "ngay": 4, "nhom_hoc": "QL kinh tế", "uu_tien": 15, "muc_uu_tien": "A – cốt lõi", "loai": "quy_luat", "nhom": "QL kinh tế", "ten": "Cung – cầu", "ten_goc": "Law of supply and demand – Alfred Marshall", "neu": "Giá một hàng hoá tăng, các yếu tố khác giữ nguyên", "thi": "Người mua mua ít đi (lượng cầu giảm), người bán muốn bán nhiều hơn (lượng cung tăng)", "chuoi": "", "vi_du": "Giá thịt heo tăng → nhà hàng chuyển sang gà; trại nuôi tăng đàn.", "gioi_han": "Ngoại lệ: hàng xa xỉ thể hiện đẳng cấp (Veblen), đầu cơ khi kỳ vọng giá tăng tiếp; ngắn hạn cung khó tăng ngay.", "tu_khoa": "giá tăng, mua ít đi, bán nhiều hơn, khan hiếm", "dieu_kien": "", "phong_ve": "", "de_nham_voi": ""}, {"id": "QL-KT-06", "thu_tu": 12, "tuan": 1, "ngay": 4, "nhom_hoc": "QL kinh tế", "uu_tien": 12, "muc_uu_tien": "A – cốt lõi", "loai": "quy_luat", "nhom": "QL kinh tế", "ten": "Lợi ích biên giảm dần", "ten_goc": "Diminishing marginal utility – Gossen; Jevons, Menger, Walras", "neu": "Dùng liên tục thêm cùng một thứ trong thời gian ngắn", "thi": "Mỗi đơn vị sau đem lại ít thoả mãn hơn đơn vị trước", "chuoi": "", "vi_du": "Ly trà sữa thứ nhất rất ngon, ly thứ ba thấy ngán.", "gioi_han": "Ngoại lệ: đồ sưu tầm, chất gây nghiện, sản phẩm có hiệu ứng mạng (càng nhiều người dùng càng giá trị).", "tu_khoa": "dùng liên tục, ngán, thoả mãn giảm, đơn vị thêm", "dieu_kien": "", "phong_ve": "", "de_nham_voi": "QL-KT-05"}, {"id": "QL-KT-03", "thu_tu": 13, "tuan": 1, "ngay": 4, "nhom_hoc": "QL kinh tế", "uu_tien": 11, "muc_uu_tien": "A – cốt lõi", "loai": "quy_luat", "nhom": "QL kinh tế", "ten": "Cạnh tranh", "ten_goc": "Perfect competition – kinh tế học tân cổ điển", "neu": "Thị trường nhiều người bán, vào ra tự do, không ai độc quyền", "thi": "Giá bị ép về gần chi phí sản xuất, lãi siêu ngạch mất dần, người mua được lợi", "chuoi": "", "vi_du": "Nhiều quán trà sữa mở cùng phố → giá giảm, chất lượng phải tăng mới giữ khách.", "gioi_han": "Ít thị trường cạnh tranh hoàn hảo; thông tin lệch, thương hiệu, hiệu ứng mạng làm cạnh tranh méo.", "tu_khoa": "nhiều người bán, không rào cản, giá giảm, chất lượng tăng", "dieu_kien": "", "phong_ve": "", "de_nham_voi": ""}, {"id": "QL-KT-05", "thu_tu": 14, "tuan": 1, "ngay": 4, "nhom_hoc": "QL kinh tế", "uu_tien": 11, "muc_uu_tien": "A – cốt lõi", "loai": "quy_luat", "nhom": "QL kinh tế", "ten": "Năng suất biên giảm dần", "ten_goc": "Law of diminishing marginal returns – David Ricardo, Turgot", "neu": "Liên tục thêm một yếu tố (người, nguyên liệu) khi yếu tố khác cố định", "thi": "Sản lượng thêm của mỗi đơn vị bổ sung giảm dần, có lúc âm", "chuoi": "", "vi_du": "Bếp 4 m² thêm đầu bếp thứ 5, thứ 6 → vướng nhau, món ra chậm hơn.", "gioi_han": "Chỉ trong ngắn hạn khi có yếu tố cố định; mở rộng bếp hoặc đổi công nghệ thì đường năng suất dịch lên.", "tu_khoa": "thêm người, cố định, quá tải, năng suất giảm", "dieu_kien": "", "phong_ve": "", "de_nham_voi": "QL-KT-06"}, {"id": "QL-LD-04", "thu_tu": 15, "tuan": 1, "ngay": 5, "nhom_hoc": "QL lãnh đạo", "uu_tien": 15, "muc_uu_tien": "A – cốt lõi", "loai": "quy_luat", "nhom": "QL lãnh đạo", "ten": "Nhất quán lời – làm", "ten_goc": "Behavioral integrity – Tony Simons (2002)", "neu": "Lãnh đạo nói và làm khớp nhau", "thi": "Uy tín tăng; người dưới dự đoán được hành vi nên bớt lo âu và xung đột", "chuoi": "", "vi_du": "Sếp hứa xét tăng lương tháng 6 và làm đúng → đội tin các lời hứa sau.", "gioi_han": "Nhất quán với điều sai vẫn là sai; cần dám thay đổi công khai khi có dữ liệu mới.", "tu_khoa": "lời hứa, giữ lời, dự đoán được, uy tín", "dieu_kien": "", "phong_ve": "", "de_nham_voi": ""}, {"id": "QL-LD-05", "thu_tu": 16, "tuan": 1, "ngay": 5, "nhom_hoc": "QL lãnh đạo", "uu_tien": 15, "muc_uu_tien": "A – cốt lõi", "loai": "quy_luat", "nhom": "QL lãnh đạo", "ten": "Thưởng phạt đúng hành vi", "ten_goc": "Operant conditioning – B. F. Skinner", "neu": "Thưởng hoặc phạt gắn đúng người, đúng hành vi, ngay sau đó", "thi": "Hành vi tốt lặp lại, hành vi xấu giảm", "chuoi": "", "vi_du": "Khen ngay người phát hiện lỗi an toàn → nhiều người báo lỗi hơn.", "gioi_han": "Thưởng vật chất cho việc vốn thích có thể làm giảm động lực nội tại (overjustification – Deci). Phạt dễ khiến người ta che giấu lỗi.", "tu_khoa": "khen thưởng, kỷ luật, đúng lúc, lặp lại", "dieu_kien": "", "phong_ve": "", "de_nham_voi": ""}, {"id": "QL-LD-09", "thu_tu": 17, "tuan": 1, "ngay": 5, "nhom_hoc": "QL lãnh đạo", "uu_tien": 14, "muc_uu_tien": "A – cốt lõi", "loai": "quy_luat", "nhom": "QL lãnh đạo", "ten": "Nêu gương", "ten_goc": "Social learning theory – Albert Bandura", "neu": "Lãnh đạo vi phạm hoặc buông lỏng chuẩn mực", "thi": "Hình thành chuẩn ngầm ở cấp cao, lan xuống làm hỏng cả hệ thống", "chuoi": "", "vi_du": "Giám đốc dùng xe công việc riêng → trưởng phòng làm theo, rồi nhân viên lấy văn phòng phẩm về nhà.", "gioi_han": "Gương tốt lan chậm hơn gương xấu; cần thêm luật và kiểm tra, không chỉ dựa vào làm gương.", "tu_khoa": "làm gương, chuẩn ngầm, cấp cao, lan xuống", "dieu_kien": "", "phong_ve": "", "de_nham_voi": ""}, {"id": "QL-LD-02", "thu_tu": 18, "tuan": 1, "ngay": 5, "nhom_hoc": "QL lãnh đạo", "uu_tien": 13, "muc_uu_tien": "A – cốt lõi", "loai": "quy_luat", "nhom": "QL lãnh đạo", "ten": "Chính danh", "ten_goc": "Legitimate authority – Max Weber", "neu": "Quyết định hợp lý, hợp đạo lý và đúng thủ tục", "thi": "Cấp dưới tự nguyện theo, kể cả khi thiệt; mất chính danh thì phải dùng ép buộc, tốn kém hơn", "chuoi": "", "vi_du": "Cắt giảm nhân sự có tiêu chí công khai, bồi thường đúng luật → ít phản đối hơn cắt theo cảm tính.", "gioi_han": "Chính danh do người theo cảm nhận; đúng luật mà bị coi là bất công thì vẫn mất chính danh.", "tu_khoa": "hợp pháp, công bằng, tự nguyện, ép buộc", "dieu_kien": "", "phong_ve": "", "de_nham_voi": "QL-QL-03"}], "tinh_huong": [{"id": "TH-01", "tinh_huong": "Một nhân viên IT phát hiện hệ thống máy chủ công ty bị tấn công mã độc tống tiền lúc nửa đêm. Anh ấy lập tức ngắt kết nối internet toàn bộ văn phòng để cô lập vùng nhiễm độc, sau đó báo cáo khẩn cấp cho giám đốc công nghệ và phối hợp cùng đội ngũ an ninh mạng khôi phục dữ liệu từ bản sao lưu dự phòng an toàn.", "tu_khoa": "Tấn công mã độc, ngắt kết nối, cô lập, báo cáo khẩn cấp, khôi phục dữ liệu, sao lưu dự phòng", "muc_lien_quan": "QL-LD-08,KHUNG-01,QL-LD-11"}, {"id": "TH-02", "tinh_huong": "Khách hàng VIP của ngân hàng tức giận đến phòng giao dịch lớn vì tài khoản cá nhân đột ngột bị trừ một khoản phí giao dịch quốc tế không rõ nguyên nhân. Trưởng phòng lập tức mời khách vào phòng riêng, kiểm tra lịch sử hệ thống, giải thích lỗi hệ thống và thực hiện hoàn tiền ngay kèm thư xin lỗi chính thức.", "tu_khoa": "Khách hàng VIP, trừ tiền không rõ nguyên nhân, lỗi hệ thống, hoàn tiền lập tức, thư xin lỗi", "muc_lien_quan": "QL-LI-04,QL-LI-05,HN-TP-09"}, {"id": "TH-03", "tinh_huong": "Trong giờ cao điểm tại nhà hàng tiệc cưới, một đầu bếp chính bất ngờ bị bỏng tay nặng do dầu sôi bắn vào. Bếp trưởng ngay lập tức sơ cứu vết thương bằng nước mát, điều chuyển nhân sự từ khu vực món khai vị sang thay thế vị trí, đảm bảo tiến độ lên món ăn không bị gián đoạn cho thực khách.", "tu_khoa": "Tai nạn lao động, đầu bếp bị bỏng, sơ cứu, điều chuyển nhân sự, đảm bảo tiến độ", "muc_lien_quan": "QL-LD-08,KHUNG-01,PP-DL-20"}, {"id": "TH-04", "tinh_huong": "Một startup công nghệ chuẩn bị ra mắt ứng dụng gọi xe thì đối thủ lớn tung chiến dịch khuyến mãi giảm giá 50% toàn thị trường. Ban giám đốc tổ chức họp khẩn, quyết định không đua giá mà tập trung nâng cao trải nghiệm chăm sóc khách hàng, tặng bảo hiểm chuyến đi và miễn phí 3 chuyến đầu cho người dùng mới.", "tu_khoa": "Đối thủ cạnh tranh, khuyến mãi lớn, họp khẩn, nâng cao trải nghiệm, tặng bảo hiểm, người dùng mới", "muc_lien_quan": "CH-KT-029,PP-36-16,KHUNG-10"}, {"id": "TH-05", "tinh_huong": "Công ty sản xuất thực phẩm phát hiện một lô bánh ngọt vừa phân phối ra các siêu thị lớn bị lỗi bao bì làm giảm hạn sử dụng. Giám đốc điều hành ra quyết định thu hồi khẩn cấp toàn bộ lô hàng lỗi, đăng thông cáo báo chí nhận trách nhiệm và đổi sản phẩm mới miễn phí cho khách đã mua.", "tu_khoa": "Lỗi bao bì, hạn sử dụng, thu hồi khẩn cấp, thông cáo báo chí, đổi sản phẩm mới", "muc_lien_quan": "QL-LD-03,QL-LD-12,QL-QL-11"}, {"id": "TH-06", "tinh_huong": "Do mưa bão lớn kéo dài làm sạt lở tuyến đường huyết mạch, một đại lý phân phối nông sản bị chậm chuyến giao hàng nguyên liệu cho nhà máy chế biến xuất khẩu. Quản lý kho đã chủ động gọi điện đàm phán xin gia hạn thời gian thêm 24 giờ, đồng thời tìm kiếm tuyến đường vòng dù chi phí cao hơn.", "tu_khoa": "Mưa bão sạt lở, chậm giao hàng, đàm phán gia hạn, tuyến đường vòng, chi phí cao", "muc_lien_quan": "KHUNG-01,QL-LD-08"}, {"id": "TH-07", "tinh_huong": "Một học sinh lớp 12 gặp áp lực tâm lý nặng nề trước kỳ thi tốt nghiệp THPT, dẫn đến mất ngủ kéo dài và có dấu hiệu trầm cảm nhẹ. Giáo viên chủ nhiệm phát hiện và chủ động liên hệ với phụ huynh, phối hợp cùng chuyên gia tâm lý học đường để giảm bớt áp lực bài vở cho em học sinh.", "tu_khoa": "Áp lực thi cử, mất ngủ, trầm cảm, giáo viên chủ nhiệm, chuyên gia tâm lý, giảm áp lực", "muc_lien_quan": "HN-PU-03,HN-TP-09,HN-TP-13"}, {"id": "TH-08", "tinh_huong": "Chuyến bay thương mại chở 150 hành khách chuẩn bị cất cánh thì hệ thống cảnh báo hiển thị lỗi áp suất lốp máy bay. Cơ trưởng quyết định hoãn chuyến bay, đưa máy bay về khu vực kỹ thuật để kiểm tra thay lốp, đồng thời hãng hàng không sắp xếp phòng chờ và cung cấp suất ăn miễn phí cho toàn bộ hành khách.", "tu_khoa": "Lỗi áp suất lốp, hoãn chuyến bay, kiểm tra kỹ thuật, thay lốp máy bay, hỗ trợ hành khách", "muc_lien_quan": "KHUNG-01,KHUNG-08"}, {"id": "TH-09", "tinh_huong": "Một công ty kiến trúc nộp hồ sơ đấu thầu dự án trung tâm thương mại lớn nhưng bị rò rỉ bản thiết kế ý tưởng cho đối thủ. Đội ngũ pháp lý lập tức thu thập chứng cứ chứng minh bản quyền, gửi văn bản cảnh cáo chính thức tới đối thủ và yêu cầu ban tổ chức đấu thầu hủy tư cách đơn vị gian lận.", "tu_khoa": "Rò rỉ thiết kế, đối thủ cạnh tranh, chứng cứ bản quyền, văn bản cảnh cáo, hủy tư cách đấu thầu", "muc_lien_quan": "PP-MT-32,QL-LI-11"}, {"id": "TH-10", "tinh_huong": "Nhà máy dệt may bị thanh tra môi trường đột xuất phát hiện nguồn nước thải chưa qua xử lý đạt chuẩn đang rò rỉ ra dòng sông bên cạnh. Ban quản lý nhà máy lập tức cho dừng dây chuyền sản xuất, khắc phục sự cố vỡ đường ống xử lý nước thải, cam kết đền bù thiệt hại và nộp phạt nghiêm chỉnh.", "tu_khoa": "Thanh tra đột xuất, nước thải chưa chuẩn, rò rỉ vỡ ống, dừng sản xuất, khắc phục sự cố, đền bù", "muc_lien_quan": "QL-LD-03,QL-LI-05,KHUNG-06"}, {"id": "TH-11", "tinh_huong": "Một cửa hàng bán lẻ điện thoại bị khách hàng tố cáo trên mạng xã hội rằng nhân viên có thái độ khinh thường người mua. Quản lý cửa hàng lập tức trích xuất camera kiểm tra, xác định nhân viên sai phạm, đình chỉ công tác nhân viên đó, đồng thời trực tiếp nhắn tin xin lỗi công khai vị khách hàng.", "tu_khoa": "Khách hàng tố cáo, thái độ nhân viên, trích xuất camera, đình chỉ công tác, xin lỗi công khai", "muc_lien_quan": "QL-LD-06,QL-QL-11,QL-LD-05"}, {"id": "TH-12", "tinh_huong": "Doanh nghiệp bất động sản đang triển khai dự án thì giá vật liệu xây dựng như sắt, thép, xi măng đột ngột tăng mạnh 30%. Chủ đầu tư phải tổ chức cuộc họp với các nhà thầu chính để thương lượng lại đơn giá, tối ưu hóa quy trình thi công nhằm tiết kiệm nguyên vật liệu mà không giảm chất lượng.", "tu_khoa": "Giá vật liệu tăng, sắt thép xi măng, thương lượng đơn giá, tối ưu thi công, tiết kiệm nguyên liệu", "muc_lien_quan": "QL-KT-01,CH-KT-028,CH-KT-084,PP-SC-06"}, {"id": "TH-13", "tinh_huong": "Một bệnh nhân lớn tuổi nhập viện cấp cứu trong tình trạng nguy kịch cần phẫu thuật gấp nhưng người nhà chưa kịp có mặt để ký giấy cam kết. Bác sĩ trưởng ca trực quyết định kích hoạt quy trình khẩn cấp, xin ý kiến ban giám đốc bệnh viện để tiến hành mổ ngay nhằm cứu sống tính mạng người bệnh.", "tu_khoa": "Cấp cứu nguy kịch, phẫu thuật gấp, thiếu người nhà ký kết, quy trình khẩn cấp, cứu sống tính mạng", "muc_lien_quan": "KHUNG-01,QL-LD-08,QL-LD-02"}, {"id": "TH-14", "tinh_huong": "Một đại lý du lịch lữ hành đặt nhầm phòng khách sạn cho đoàn khách 40 người tại Phú Quốc vào mùa cao điểm khiến khách không có chỗ ở. Giám đốc đại lý lập tức bay ra hiện trường, thương lượng chuyển khách sang resort 5 sao gần đó với chi phí cao hơn và công ty tự bù toàn bộ phần chênh lệch.", "tu_khoa": "Đặt nhầm phòng, mùa cao điểm, Phú Quốc, thương lượng resort, bù chi phí chênh lệch", "muc_lien_quan": "QL-LI-05,QL-LD-03,HN-TP-12"}, {"id": "TH-15", "tinh_huong": "Trong quá trình thi công đào móng xây dựng tòa nhà văn phòng, nhóm công nhân bất ngờ phát hiện một quả bom lớn còn sót lại từ thời chiến tranh. Chỉ huy trưởng công trường lập tức ra lệnh sơ tán toàn bộ công nhân, phong tỏa hiện trường và báo tin khẩn cấp cho cơ quan quân sự địa phương.", "tu_khoa": "Đào móng xây dựng, phát hiện bom, sơ tán công nhân, phong tỏa hiện trường, cơ quan quân sự", "muc_lien_quan": "KHUNG-01,QL-LD-08"}, {"id": "TH-16", "tinh_huong": "Một chuỗi siêu thị mini phát hiện hệ thống thanh toán thẻ POS bị lỗi kết nối diện rộng vào đúng ngày lễ mua sắm lớn. Bộ phận kỹ thuật triển khai phương án dự phòng chuyển sang nhận thanh toán bằng mã QR chuyển khoản nhanh và bố trí thêm nhân viên thu ngân nhận tiền mặt để giảm ùn tắc tại quầy.", "tu_khoa": "Lỗi máy POS, ngày lễ mua sắm, phương án dự phòng, thanh toán mã QR, thu ngân tiền mặt, giảm ùn tắc", "muc_lien_quan": "KHUNG-01,CH-LA-08,KHUNG-08"}, {"id": "TH-17", "tinh_huong": "Một công ty chuyển phát nhanh bị thất lạc gói hàng chứa tài liệu thầu quan trọng của một doanh nghiệp đối tác lớn. Trưởng bộ phận dịch vụ khách hàng trực tiếp liên hệ nhận lỗi, cử nhân viên đi tìm kiếm định vị định vị GPS dòng xe vận chuyển và kịp thời bàn giao tài liệu trước giờ đóng thầu 30 phút.", "tu_khoa": "Thất lạc gói hàng, tài liệu thầu, liên hệ nhận lỗi, định vị GPS, bàn giao kịp thời", "muc_lien_quan": "QL-LD-03,QL-LI-05"}, {"id": "TH-18", "tinh_huong": "Trường tiểu học phát hiện có 5 học sinh trong cùng một lớp có biểu hiện sốt cao và nổi nốt mẩn đỏ nghi mắc bệnh sởi. Hiệu trưởng lập tức cách ly các em tại phòng y tế, thông báo cho phụ huynh đón về đi khám, đồng thời phun thuốc khử trùng toàn bộ trường học để ngăn dịch lây lan.", "tu_khoa": "Học sinh sốt cao, nghi mắc sởi, cách ly y tế, thông báo phụ huynh, phun thuốc khử trùng, ngăn dịch", "muc_lien_quan": "KHUNG-01,CH-LA-11,QL-LD-12"}, {"id": "TH-19", "tinh_huong": "Một công ty phần mềm xuất khẩu bị mất điện đột ngột toàn bộ tòa nhà do sự cố máy biến áp khu vực khi đang chuẩn bị nghiệm thu dự án lớn. Đội ngũ kỹ sư lập tức khởi động máy phát điện dự phòng, chuyển sang dùng mạng di động 4G để duy trì kết nối trực tuyến liên tục với đối tác nước ngoài.", "tu_khoa": "Mất điện đột ngột, sự cố biến áp, máy phát điện dự phòng, mạng 4G, duy trì kết nối, đối tác nước ngoài", "muc_lien_quan": "KHUNG-01,KHUNG-08"}, {"id": "TH-20", "tinh_huong": "Một nông trại trồng rau sạch hữu cơ bị sâu bệnh tấn công bất ngờ trên diện rộng làm nguy cơ mất trắng toàn bộ vụ mùa cận Tết. Kỹ sư nông nghiệp quyết định không dùng thuốc hóa học độc hại mà sử dụng chế phẩm sinh học tỏi ớt kết hợp thiên địch để dập dịch, bảo vệ tiêu chuẩn hữu cơ.", "tu_khoa": "Rau sạch hữu cơ, sâu bệnh tấn công, nguy cơ mất mùa, chế phẩm sinh học, dập dịch, tiêu chuẩn hữu cơ", "muc_lien_quan": "KHUNG-09,PP-SC-01"}], "lich": [{"tuan": 1, "hoc_moi": "T2 Khung tư duy (4) · T3 Khung tư duy (3) · T4 Khung tư duy (3) · T5 QL kinh tế (4) · T6 QL lãnh đạo (4)", "so_muc": 18, "muc_uu_tien": "A", "tro_luyen_mo": ""}, {"tuan": 2, "hoc_moi": "T2 QL lãnh đạo (4) · T3 QL lợi ích (4) · T4 QL lợi ích (4) · T5 Phản ứng thụ động (4) · T6 Phản ứng thụ động (4)", "so_muc": 20, "muc_uu_tien": "A", "tro_luyen_mo": "NẾU–THÌ 60 giây (khi ≥ 10 mục bậc 5)"}, {"tuan": 3, "hoc_moi": "T2 Phản ứng thụ động (4) · T3 QL quyền lực (4) · T4 Chuỗi phụ thuộc (4) · T5 Chuỗi kinh tế (4) · T6 Thu phục nhân tài (4)", "so_muc": 20, "muc_uu_tien": "A", "tro_luyen_mo": ""}, {"tuan": 4, "hoc_moi": "T2 Thu phục nhân tài (4) · T3 Thu phục nhân tài (4) · T4 Chuỗi thói quen (4) · T5 Chuỗi thói quen (4) · T6 Động lực (4)", "so_muc": 20, "muc_uu_tien": "A", "tro_luyen_mo": ""}, {"tuan": 5, "hoc_moi": "T2 Động lực (4) · T3 Động lực (4) · T4 Động lực (4) · T5 Động lực (4) · T6 Động lực (4)", "so_muc": 20, "muc_uu_tien": "A", "tro_luyen_mo": ""}, {"tuan": 6, "hoc_moi": "T2 Nhìn người (4) · T3 Nhìn người (4) · T4 Chuỗi leo thang (4) · T5 Phương pháp theo đối phương (4) · T6 SCAMPER (4)", "so_muc": 20, "muc_uu_tien": "A", "tro_luyen_mo": ""}, {"tuan": 7, "hoc_moi": "Củng cố – không học mới", "so_muc": "", "muc_uu_tien": "", "tro_luyen_mo": "Phòng cấp cứu 90 giây"}, {"tuan": 8, "hoc_moi": "T2 Chuỗi điều khiển nhóm (4) · T3 QL kinh tế (3) · T4 Chuỗi lan truyền (4) · T5 Chuỗi lan truyền (4) · T6 Chuỗi lan truyền (4)", "so_muc": 19, "muc_uu_tien": "A, B", "tro_luyen_mo": ""}, {"tuan": 9, "hoc_moi": "T2 Chuỗi leo thang (3) · T3 Chuỗi leo thang (3) · T4 Chuỗi kinh tế (4) · T5 Chuỗi kinh tế (4) · T6 Chuỗi kinh tế (4)", "so_muc": 18, "muc_uu_tien": "B", "tro_luyen_mo": ""}, {"tuan": 10, "hoc_moi": "T2 Chuỗi kinh tế (4) · T3 Chuỗi kinh tế (4) · T4 Chuỗi kinh tế (4) · T5 QL lãnh đạo (3) · T6 QL lãnh đạo (2)", "so_muc": 17, "muc_uu_tien": "B", "tro_luyen_mo": ""}, {"tuan": 11, "hoc_moi": "T2 Chuỗi phụ thuộc (3) · T3 Chuỗi phụ thuộc (3) · T4 Nhìn người (4) · T5 Nhìn người (4) · T6 QL quyền lực (4)", "so_muc": 18, "muc_uu_tien": "B", "tro_luyen_mo": ""}, {"tuan": 12, "hoc_moi": "T2 QL quyền lực (4) · T3 Phản ứng thụ động (3) · T4 Phản ứng thụ động (3) · T5 Phản ứng thụ động (3) · T6 Động lực (4)", "so_muc": 17, "muc_uu_tien": "B", "tro_luyen_mo": ""}, {"tuan": 13, "hoc_moi": "T2 Động lực (4) · T3 Động lực (4) · T4 Động lực (4) · T5 Động lực (4) · T6 Động lực (4)", "so_muc": 20, "muc_uu_tien": "B", "tro_luyen_mo": ""}, {"tuan": 14, "hoc_moi": "T2 Động lực (4) · T3 Động lực (4) · T4 Thu phục nhân tài (4) · T5 Thu phục nhân tài (3) · T6 36 kế (4)", "so_muc": 19, "muc_uu_tien": "B", "tro_luyen_mo": ""}, {"tuan": 15, "hoc_moi": "T2 36 kế (4) · T3 36 kế (4) · T4 Phương pháp theo đối phương (4) · T5 Phương pháp theo đối phương (4) · T6 QL lợi ích (3)", "so_muc": 19, "muc_uu_tien": "B", "tro_luyen_mo": ""}, {"tuan": 16, "hoc_moi": "T2 Chuỗi điều khiển nhóm (3) · T3 Chuỗi điều khiển nhóm (3) · T4 SCAMPER (3) · T5 Chuỗi lan truyền (5) · T6 Nhìn người (4)", "so_muc": 18, "muc_uu_tien": "B, C", "tro_luyen_mo": "Domino"}, {"tuan": 17, "hoc_moi": "T2 Động lực (4) · T3 Động lực (4) · T4 Động lực (3) · T5 Chuỗi kinh tế (5) · T6 Chuỗi kinh tế (5)", "so_muc": 21, "muc_uu_tien": "C", "tro_luyen_mo": ""}, {"tuan": 18, "hoc_moi": "T2 Chuỗi kinh tế (5) · T3 Chuỗi kinh tế (5) · T4 Chuỗi kinh tế (5) · T5 Chuỗi kinh tế (5) · T6 Chuỗi kinh tế (5)", "so_muc": 25, "muc_uu_tien": "C", "tro_luyen_mo": ""}, {"tuan": 19, "hoc_moi": "T2 Chuỗi kinh tế (5) · T3 Chuỗi kinh tế (5) · T4 Chuỗi kinh tế (5) · T5 Chuỗi kinh tế (5) · T6 Chuỗi kinh tế (5)", "so_muc": 25, "muc_uu_tien": "C", "tro_luyen_mo": ""}, {"tuan": 20, "hoc_moi": "T2 Chuỗi kinh tế (5) · T3 Chuỗi kinh tế (5) · T4 Phương pháp theo đối phương (5) · T5 Phương pháp theo đối phương (5) · T6 Phương pháp theo đối phương (5)", "so_muc": 25, "muc_uu_tien": "C", "tro_luyen_mo": ""}, {"tuan": 21, "hoc_moi": "T2 Phương pháp theo đối phương (5) · T3 36 kế (5) · T4 36 kế (5) · T5 36 kế (5) · T6 36 kế (4)", "so_muc": 24, "muc_uu_tien": "C", "tro_luyen_mo": ""}, {"tuan": 22, "hoc_moi": "T2 QL quyền lực (5) · T3 QL quyền lực (5)", "so_muc": 10, "muc_uu_tien": "C", "tro_luyen_mo": ""}, {"tuan": 23, "hoc_moi": "Củng cố – không học mới", "so_muc": "", "muc_uu_tien": "", "tro_luyen_mo": ""}, {"tuan": 24, "hoc_moi": "Tổng kiểm tra", "so_muc": "", "muc_uu_tien": "", "tro_luyen_mo": ""}, {"tuan": "25+", "hoc_moi": "Giao tiếp (sau khi tách thẻ)", "so_muc": "", "muc_uu_tien": "", "tro_luyen_mo": ""}]};
+</script>
+<script>
+"use strict";
+/* ================== Tiện ích ================== */
+const $ = s => document.querySelector(s);
+const lc1 = s => { s = String(s || ''); return s && !/^[A-Z0-9]{2}/.test(s) ? s.charAt(0).toLowerCase() + s.slice(1) : s; };
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const DAYNAME = ['Chủ nhật','Thứ Hai','Thứ Ba','Thứ Tư','Thứ Năm','Thứ Sáu','Thứ Bảy'];
+const INTERVAL = [1, 2, 4, 7, 15];
+const BAC_NAME = ['Chưa học','Làm quen','Nhận ra','Phân biệt','Nhớ ra','Phản xạ'];
+const PHASE_MIN = 5;
+const memStore = {};
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? (k in memStore ? memStore[k] : d) : JSON.parse(v); } catch (e) { return k in memStore ? memStore[k] : d; } },
+  set(k, v) { memStore[k] = v; try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  del(k) { delete memStore[k]; try { localStorage.removeItem(k); } catch (e) {} }
+};
+function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
+function ymd(d) { const z = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()); }
+function parseYmd(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
+function addDays(s, n) { const d = parseYmd(s); d.setDate(d.getDate() + n); return ymd(d); }
+function diffDays(a, b) { return Math.round((parseYmd(b) - parseYmd(a)) / 86400000); }
+function mondayOf(s) { const d = parseYmd(s); const k = (d.getDay() + 6) % 7; d.setDate(d.getDate() - k); return ymd(d); }
+
+/* ================== Dữ liệu ================== */
+const KEY_PROFILES = 'mindgym_v1_profiles', KEY_DATA = 'mindgym_v1_data', KEY_THEME = 'mindgym_v1_theme';
+let BANK = null, BYID = {}, TH = [];
+function loadBank() {
+  const imp = store.get(KEY_DATA, null);
+  const src = imp && Array.isArray(imp.muc) && imp.muc.length ? imp : EMBED;
+  BANK = src.muc.map(normItem).filter(x => x.id && x.ten && x.neu && x.thi);
+  BANK.forEach((x, i) => { if (!x.thu_tu) x.thu_tu = 100000 + i; });
+  BANK.sort((a, b) => a.tuan - b.tuan || a.thu_tu - b.thu_tu);
+  TH = (src.tinh_huong && src.tinh_huong.length ? src.tinh_huong : EMBED.tinh_huong) || [];
+  BYID = {}; BANK.forEach(x => BYID[x.id] = x);
+  BANK.source = imp && imp.muc && imp.muc.length ? (imp.ten || 'dữ liệu đã nhập') : 'dữ liệu nhúng sẵn (tuần 1)';
+}
+function normItem(r) {
+  const s = k => (r[k] == null ? '' : String(r[k]).trim());
+  return { id: s('id'), tuan: parseInt(s('tuan')) || 1, thu_tu: parseInt(s('thu_tu')) || 0, ngay: parseInt(s('ngay')) || 0,
+    nhom_hoc: s('nhom_hoc') || s('nhom') || 'Chung', uu_tien: parseInt(s('uu_tien')) || 0, muc_uu_tien: s('muc_uu_tien'),
+    loai: s('loai'), nhom: s('nhom') || 'Chung', ten: s('ten'), ten_goc: s('ten_goc'),
+    neu: s('neu'), thi: s('thi'), chuoi: s('chuoi'), vi_du: s('vi_du'), gioi_han: s('gioi_han'), tu_khoa: s('tu_khoa'),
+    dieu_kien: s('dieu_kien'), phong_ve: s('phong_ve'), de_nham_voi: s('de_nham_voi') };
+}
+
+/* ================== Hồ sơ & tiến độ ================== */
+let PROFILES = null, P = null;
+function newProgress(name) {
+  const t = ymd(new Date());
+  return { v: 1, name, created: t, startMonday: mondayOf(t), offset: 0, dayOverride: null, items: {}, sessions: {}, game: { limitMs: 8000, rounds: [] } };
+}
+function pkey(id) { return 'mindgym_v1_' + id; }
+function loadProfiles() {
+  PROFILES = store.get(KEY_PROFILES, null);
+  if (!PROFILES || !PROFILES.list || !PROFILES.list.length) {
+    PROFILES = { list: [{ id: 'hs1', name: 'Tôi' }], current: 'hs1' };
+    store.set(KEY_PROFILES, PROFILES); store.set(pkey('hs1'), newProgress('Tôi'));
+  }
+  P = store.get(pkey(PROFILES.current), null) || newProgress(curProfile().name);
+  P.items = P.items || {}; P.sessions = P.sessions || {}; P.game = P.game || { limitMs: 8000, rounds: [] };
+}
+function curProfile() { return PROFILES.list.find(p => p.id === PROFILES.current) || PROFILES.list[0]; }
+function save() { if (!store.set(pkey(PROFILES.current), P)) { /* bộ nhớ trình duyệt bị chặn: vẫn chạy trong phiên */ } }
+function today() { const d = new Date(); d.setDate(d.getDate() + (P.offset || 0)); return ymd(d); }
+function dow() { return P.dayOverride != null && P.dayOverride !== '' ? Number(P.dayOverride) : parseYmd(today()).getDay(); }
+function curWeek() { return Math.max(1, Math.floor(diffDays(P.startMonday, today()) / 7) + 1); }
+function prog(id) {
+  let it = P.items[id];
+  if (!it) it = P.items[id] = { bac: 0, s2: 0, d3: [], d4: [], box: 0, due: null, tries: {}, note: '', hist: [], game: [] };
+  return it;
+}
+function bacOf(id) { return P.items[id] ? P.items[id].bac : 0; }
+function learned() { return BANK.filter(x => bacOf(x.id) >= 1); }
+function dueList() { const t = today(); return BANK.filter(x => { const it = P.items[x.id]; return it && it.bac >= 2 && it.due && it.due <= t; }); }
+function countBac(n) { return BANK.filter(x => bacOf(x.id) >= n).length; }
+function gameUnlocked() { return curWeek() >= 2 && countBac(5) >= 10; }
+
+/* Mục mới hôm nay: theo thứ tự ưu tiên (thu_tu). Lấy trọn "ngày học" kế tiếp đã xếp sẵn (3–5 mục cùng nhóm);
+   dữ liệu tự soạn không có cột ngay thì lấy tối đa 4 mục liền nhau cùng nhóm. */
+function newToday() {
+  const w = curWeek();
+  const pool = BANK.filter(x => x.tuan <= w && bacOf(x.id) === 0);
+  if (!pool.length) return [];
+  const f = pool[0];
+  if (f.ngay) return pool.filter(x => x.tuan === f.tuan && x.ngay === f.ngay).slice(0, 5);
+  const out = [];
+  for (const x of pool) { if (x.nhom_hoc !== f.nhom_hoc || out.length >= 4) break; out.push(x); }
+  return out;
+}
+function streak() {
+  let n = 0, d = today();
+  if (!P.sessions[d]) d = addDays(d, -1);
+  for (let i = 0; i < 400; i++) {
+    const wd = parseYmd(d).getDay();
+    if (P.sessions[d]) n++; else if (wd !== 0) break;
+    d = addDays(d, -1);
+  }
+  return n;
+}
+
+/* ================== Chấm & lên bậc ================== */
+function addDay(arr, t) { if (!arr.includes(t)) arr.push(t); }
+function setBac(it, b) { it.bac = b; if (b === 2) it.s2 = 0; if (b === 3) it.d3 = []; if (b === 4) it.d4 = []; }
+function grade(id, level, ok, kind) {
+  const it = prog(id), t = today();
+  it.tries[level] = t; it.hist.push([t, level, ok ? 1 : 0, kind]); if (it.hist.length > 60) it.hist.shift();
+  let up = false;
+  if (level === 2) {
+    if (ok) { it.s2++; if (it.s2 >= 2) { setBac(it, 3); it.box = 0; it.due = addDays(t, 1); up = true; } }
+    else { it.s2 = 0; it.due = addDays(t, 1); }
+  } else {
+    if (ok) {
+      if (level === 3) { addDay(it.d3, t); if (it.d3.length >= 2) { setBac(it, 4); up = true; } }
+      if (level === 4) { addDay(it.d4, t); if (it.d4.length >= 2) { setBac(it, 5); up = true; } }
+      if (kind !== 'practice') { it.due = addDays(t, INTERVAL[it.box]); it.box = Math.min(it.box + 1, 4); }
+    } else {
+      setBac(it, Math.max(2, it.bac - 1)); it.box = 0; it.due = addDays(t, 1);
+    }
+  }
+  const s = sessRec(); s.total++; if (ok) s.correct++; if (up) s.up++;
+  save();
+  return up;
+}
+function sessRec() { const t = today(); return P.sessions[t] = P.sessions[t] || { neu: 0, on: 0, total: 0, correct: 0, up: 0, done: false, game: null }; }
+
+/* ================== Câu hỏi ================== */
+function distractors(item, field, n, sameGroup) {
+  const base = BANK.filter(x => x.id !== item.id && x[field] && x[field] !== item[field]);
+  const near = (item.de_nham_voi || '').split(',').map(s => s.trim()).filter(Boolean).map(i => BYID[i]).filter(x => x && x[field] && x[field] !== item[field]);
+  let tiers;
+  if (sameGroup) tiers = [near, base.filter(x => x.nhom === item.nhom), base.filter(x => x.loai === item.loai), base];
+  else tiers = [base.filter(x => x.nhom !== item.nhom), base];
+  const out = [], seen = new Set([item[field]]);
+  for (const t of tiers) for (const x of shuffle(t)) { if (out.length >= n) break; if (!seen.has(x[field])) { seen.add(x[field]); out.push(x[field]); } }
+  return out;
+}
+function makeQuiz(item, level) {
+  const nOpt = level === 2 ? 1 : 3, same = level >= 3;
+  let kinds = ['neu2thi', 'thi2ten'];
+  if (item.chuoi && level >= 3) kinds.push('gap');
+  const kind = kinds[Math.floor(Math.random() * kinds.length)];
+  if (kind === 'gap') {
+    const steps = item.chuoi.split('→').map(s => s.trim());
+    if (steps.length >= 3) {
+      const k = 1 + Math.floor(Math.random() * (steps.length - 2));
+      const ans = steps[k];
+      const pool = shuffle(BANK.filter(x => x.chuoi && x.id !== item.id).flatMap(x => x.chuoi.split('→').map(s => s.trim()))).filter(s => s !== ans);
+      const opts = shuffle([ans, ...[...new Set(pool)].slice(0, nOpt)]);
+      return { id: item.id, level, kind, label: 'Điền mắt xích còn thiếu', prompt: steps.map((s, i) => i === k ? '▢ ?' : s).join(' → '), opts, ans };
+    }
+  }
+  if (kind === 'thi2ten') {
+    const opts = shuffle([item.ten, ...distractors(item, 'ten', nOpt, same)]);
+    return { id: item.id, level, kind, label: 'Hệ quả / cách làm này thuộc mục nào?', prompt: item.thi, opts, ans: item.ten };
+  }
+  const opts = shuffle([item.thi, ...distractors(item, 'thi', nOpt, same)]);
+  return { id: item.id, level, kind: 'neu2thi', label: 'NẾU … thì sao?', prompt: item.neu, sub: item.ten, opts, ans: item.thi };
+}
+function keywordScore(answer, ref) {
+  const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9\s]/g, ' ');
+  const STOP = new Set(['va','la','cua','cho','de','thi','khi','neu','cac','mot','nhung','duoc','voi','trong','nay','do','co','khong','hon','ra','vao','theo','tu','den','nguoi','lai','se','bi','hay','hoac','con','rat','van','cung']);
+  const refW = [...new Set(norm(ref).split(/\s+/).filter(w => w.length >= 2 && !STOP.has(w)))];
+  if (!refW.length) return 0;
+  const a = ' ' + norm(answer) + ' ';
+  return Math.round(100 * refW.filter(w => a.includes(' ' + w + ' ')).length / refW.length);
+}
+
+/* ================== Điều hướng ================== */
+let TAB = 'today', S = null, G = null, timerId = null;
+function go(tab) { TAB = tab; if (tab !== 'today') { stopTimer(); } render(); window.scrollTo(0, 0); }
+function render() {
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === TAB));
+  $('#hdrSub').textContent = `${curProfile().name} · Tuần ${curWeek()} · ${DAYNAME[dow()]}${P.offset ? ' (giả lập)' : ''}`;
+  const app = $('#app');
+  if (TAB === 'today') app.innerHTML = G ? viewGame() : S ? viewSession() : viewToday();
+  else if (TAB === 'academy') app.innerHTML = viewAcademy();
+  else if (TAB === 'book') app.innerHTML = viewBook();
+  else app.innerHTML = viewSettings();
+  afterRender();
+}
+function afterRender() {
+  const f = document.querySelector('[data-autofocus]'); if (f) f.focus();
+}
+
+/* ================== Màn Hôm nay ================== */
+function viewToday() {
+  const d = dow(), due = dueList().length, nt = newToday(), w = curWeek(), rec = P.sessions[today()];
+  const brake = due > 40;
+  let plan, startLabel = 'Bắt đầu buổi 15 phút', mode = 'week';
+  if (d === 6) { mode = 'test'; startLabel = 'Bắt đầu kiểm tra 15 phút';
+    plan = `<li><span class="t">15'</span><div><b>Kiểm tra trộn</b><div class="muted small">Mọi mục đã học (${countBac(2)} mục), hỏi đúng bậc đang đứng. Không học mới.</div></div></li>`; }
+  else if (d === 0) { mode = 'rest'; startLabel = 'Xem 1 tình huống nhẹ';
+    plan = `<li><span class="t">CN</span><div><b>Nghỉ</b><div class="muted small">Không bắt buộc. Nếu muốn: đọc 1 tình huống, tự áp khung tư duy nhanh 5 bước.</div></div></li>`; }
+  else {
+    const newTxt = brake ? `<span style="color:var(--warn)">Tạm dừng: ${due} thẻ cần ôn &gt; 40</span>` : nt.length ? `${nt.length} mục · nhóm <b>${esc(nt[0].nhom_hoc)}</b> · xếp theo độ ưu tiên` : 'Đã học hết mục mới của tuần này';
+    const prac = gameUnlocked() ? 'NẾU–THÌ 60 giây' : `Đẩy bậc cho mục ở bậc 2–4 <span class="muted">(NẾU–THÌ mở từ tuần 2 khi ≥ 10 mục bậc 5; hiện ${countBac(5)})</span>`;
+    plan = `<li><span class="t">5'</span><div><b>Học mới</b><div class="muted small">${newTxt}</div></div></li>
+      <li><span class="t">5'</span><div><b>Ôn thẻ đến hạn</b><div class="muted small">${due} thẻ</div></div></li>
+      <li><span class="t">5'</span><div><b>Luyện</b><div class="muted small">${prac}</div></div></li>`;
+  }
+  const doneMsg = rec && rec.done ? `<div class="ok">Hôm nay đã tập xong ✓ (${rec.correct}/${rec.total} câu đúng). Có thể tập thêm nếu muốn.</div>` : '';
+  const empty = !BANK.length ? `<div class="err">Chưa có dữ liệu. Vào Cài đặt → Nhập Excel.</div>` : '';
+  return `
+  <div class="card">
+    <div class="flash">Tuần ${w} · ${DAYNAME[d]}</div>
+    <h2>${mode === 'test' ? 'Kiểm tra cuối tuần' : mode === 'rest' ? 'Ngày nghỉ' : 'Buổi tập hôm nay'}</h2>
+    ${empty}${doneMsg}
+    <ul class="plan">${plan}</ul>
+    <button class="btn primary block mt" data-act="start" data-mode="${mode}" data-autofocus ${!BANK.length ? 'disabled' : ''}>${startLabel}</button>
+  </div>
+  <div class="grid2">
+    <div class="stat"><div class="n">${due}</div><div class="l">thẻ cần ôn</div></div>
+    <div class="stat"><div class="n">${countBac(1)}/${BANK.filter(x => x.tuan <= w).length}</div><div class="l">mục đã học (tới tuần ${w})</div></div>
+    <div class="stat"><div class="n">${countBac(5)}</div><div class="l">mục đạt bậc 5</div></div>
+    <div class="stat"><div class="n">${streak()}</div><div class="l">ngày liên tiếp</div></div>
+  </div>
+  ${nt.length && !brake && d >= 1 && d <= 5 ? `<div class="card mt"><h3>Mục mới hôm nay</h3>${nt.map(x => `<div>• ${esc(x.ten)}${x.uu_tien ? ` <span class="pill">ưu tiên ${x.uu_tien}/15</span>` : ''}</div>`).join('')}</div>` : ''}`;
+}
+
+/* ================== Phiên tập ================== */
+function startSession(mode) {
+  if (mode === 'rest') { S = { mode, phase: 'rest', th: TH.length ? TH[Math.floor(Math.random() * TH.length)] : null, reveal: false }; render(); return; }
+  if (mode === 'test') {
+    const items = shuffle(BANK.filter(x => bacOf(x.id) >= 2)).slice(0, 30);
+    S = { mode, phase: 'test', phases: ['test'], start: Date.now(), limit: 15, queue: items.map(x => taskFor(x.id)), cur: null, stat: { ok: 0, n: 0, up: [] } };
+    if (!items.length) { S.cur = { t: 'info', msg: 'Chưa có mục nào ở bậc 2 trở lên để kiểm tra. Hãy học vài buổi trong tuần trước.' }; render(); startTimer(); return; }
+    nextTask(); startTimer(); return;
+  }
+  S = { mode, phases: ['new', 'review', 'practice'], phase: null, start: 0, limit: PHASE_MIN, queue: [], cur: null, stat: { ok: 0, n: 0, up: [], neu: [] } };
+  enterPhase('new');
+}
+function taskFor(id) { const b = bacOf(id); if (b <= 2) return { t: 'quiz', id, level: 2 }; if (b === 3) return { t: 'quiz', id, level: 3 }; if (b === 4) return { t: 'type', id }; return { t: 'quiz', id, level: 5 }; }
+function enterPhase(ph) {
+  S.phase = ph; S.start = Date.now(); S.timeUpShown = false; S.cur = null;
+  if (ph === 'new') {
+    const brake = dueList().length > 40;
+    const nt = brake ? [] : newToday();
+    S.brake = brake;
+    S.queue = [];
+    nt.forEach(x => { S.queue.push({ t: 'card', id: x.id }); });
+    nt.forEach(x => { S.queue.push({ t: 'quiz', id: x.id, level: 2 }); });
+    S.newIds = nt.map(x => x.id);
+    if (!nt.length) { S.cur = { t: 'info', msg: brake ? `Phanh bật: có ${dueList().length} thẻ cần ôn (> 40). Hôm nay chỉ ôn, không học mới.` : 'Không có mục mới hôm nay (đã học hết mục của tuần, hoặc đang là tuần củng cố).' }; render(); startTimer(); return; }
+  }
+  if (ph === 'review') {
+    const t = today();
+    S.queue = dueList().sort((a, b) => (P.items[a.id].due).localeCompare(P.items[b.id].due)).map(x => taskFor(x.id));
+    if (!S.queue.length) { S.cur = { t: 'info', msg: 'Không có thẻ đến hạn ôn hôm nay. Tốt!' }; render(); startTimer(); return; }
+  }
+  if (ph === 'practice') {
+    if (gameUnlocked()) { S.cur = { t: 'gameintro' }; render(); startTimer(); return; }
+    const t = today();
+    const pool = shuffle(BANK.filter(x => { const it = P.items[x.id]; return it && it.bac >= 2 && it.bac <= 4 && it.tries[it.bac] !== t; })).slice(0, 8);
+    S.queue = pool.map(x => Object.assign(taskFor(x.id), { practice: true }));
+    if (!S.queue.length) { S.cur = { t: 'info', msg: 'Chưa có mục nào cần đẩy bậc lúc này (mọi mục ở bậc 2–4 đã được hỏi hôm nay).' }; render(); startTimer(); return; }
+  }
+  nextTask(); startTimer();
+}
+function nextTask() {
+  S.cur = S.queue.shift() || null;
+  if (S.cur && S.cur.t === 'quiz') S.cur.q = makeQuiz(BYID[S.cur.id], S.cur.level);
+  if (!S.cur) { finishPhase(); return; }
+  render();
+}
+function finishPhase() {
+  const i = S.phases.indexOf(S.phase);
+  if (S.mode !== 'test' && i >= 0 && i < S.phases.length - 1) { enterPhase(S.phases[i + 1]); return; }
+  endSession();
+}
+function endSession() {
+  stopTimer();
+  const rec = sessRec(); rec.done = true; save();
+  S = { mode: S.mode, phase: 'summary', stat: S.stat, newIds: S.newIds || [] };
+  render();
+}
+function phaseElapsed() { return Math.floor((Date.now() - S.start) / 1000); }
+function startTimer() { stopTimer(); timerId = setInterval(tick, 1000); }
+function stopTimer() { if (timerId) clearInterval(timerId); timerId = null; }
+function tick() {
+  const el = document.getElementById('clock'); if (!el || !S || !S.start) return;
+  const lim = (S.limit || PHASE_MIN) * 60, left = lim - phaseElapsed();
+  const a = Math.abs(left), m = Math.floor(a / 60), s = a % 60;
+  el.textContent = (left < 0 ? '+' : '') + m + ':' + String(s).padStart(2, '0');
+  el.classList.toggle('over', left < 0);
+  if (left < 0 && !S.timeUpShown) { S.timeUpShown = true; const b = document.getElementById('timeup'); if (b) b.classList.remove('hidden'); }
+}
+function phaseHeader() {
+  const names = { new: 'Học mới', review: 'Ôn thẻ đến hạn', practice: 'Luyện', test: 'Kiểm tra trộn' };
+  const steps = (S.phases || []).map(p => `<span class="st ${p === S.phase ? 'on' : (S.phases.indexOf(p) < S.phases.indexOf(S.phase) ? 'done' : '')}"></span>`).join('');
+  const nextLabel = S.mode === 'test' || S.phase === 'practice' ? 'Kết thúc buổi' : 'Sang phần tiếp';
+  return `<div class="phasebar"><div class="steps">${steps}</div><div class="clock" id="clock">${S.limit || PHASE_MIN}:00</div></div>
+    <div class="row" style="justify-content:space-between"><div class="flash">${names[S.phase] || ''} ${S.queue && S.queue.length ? '· còn ' + S.queue.length : ''}</div>
+    <button class="btn ghost small" style="min-height:36px;padding:4px 10px" data-act="skipphase">${nextLabel} ›</button></div>
+    <div id="timeup" class="warn hidden">Hết ${S.limit || PHASE_MIN} phút. Làm nốt câu này rồi bấm “${nextLabel}”, hoặc tiếp tục nếu muốn.</div>`;
+}
+function itemCard(x, showLimit) {
+  return `<div class="title">${esc(x.ten)}</div>${x.ten_goc ? `<div class="origin">${esc(x.ten_goc)}</div>` : ''}
+    <div class="face"><div class="k">Nếu</div><div class="v">${esc(x.neu)}</div></div>
+    <div class="face"><div class="k">Thì</div><div class="v">${esc(x.thi)}</div></div>
+    ${x.chuoi ? `<div class="face"><div class="k">Chuỗi</div><div class="v">${esc(x.chuoi)}</div></div>` : ''}
+    <div class="face"><div class="k">Ví dụ</div><div class="v">${esc(x.vi_du)}</div></div>
+    ${showLimit ? `<details class="face"><summary>Lật xem giới hạn${x.phong_ve ? ' & phòng vệ' : ''}</summary><div class="v mt">${esc(x.gioi_han)}</div>${x.phong_ve ? `<div class="v mt"><b>Phòng vệ:</b> ${esc(x.phong_ve)}</div>` : ''}</details>` : ''}`;
+}
+function viewSession() {
+  if (S.phase === 'rest') return viewRest();
+  if (S.phase === 'summary') return viewSummary();
+  const c = S.cur;
+  let body = '';
+  if (!c) body = '<div class="card">Đang tải…</div>';
+  else if (c.t === 'info') body = `<div class="card"><p>${esc(c.msg)}</p><button class="btn primary block" data-act="skipphase" data-autofocus>Tiếp tục</button></div>`;
+  else if (c.t === 'card') {
+    const x = BYID[c.id], it = prog(c.id);
+    body = `<div class="card"><div class="flash">Bậc 1 · Làm quen</div>${itemCard(x, true)}
+      <div class="face"><div class="k">Tự nói lại bằng lời mình, rồi nghĩ 1 ví dụ đời mình</div>
+      <textarea id="note" placeholder="Ví dụ của tôi (không bắt buộc)…">${esc(it.note || '')}</textarea></div>
+      <button class="btn primary block mt" data-act="understood" data-autofocus>Đã hiểu <span class="kbd">Enter</span></button></div>`;
+  } else if (c.t === 'quiz') {
+    const q = c.q, x = BYID[c.id];
+    const lvName = c.level === 2 ? 'Bậc 2 · Nhận ra (chọn 1 trong 2)' : c.level === 3 ? 'Bậc 3 · Phân biệt (chọn 1 trong 4)' : 'Bậc 5 · Giữ phản xạ';
+    body = `<div class="card"><div class="flash">${lvName}${c.practice ? ' · luyện' : ''}</div>
+      <div class="qlabel">${esc(q.label)}</div>
+      ${q.kind === 'neu2thi' ? `<div class="small muted">${esc(q.sub)}</div>` : ''}
+      <div class="q">${q.kind === 'neu2thi' ? 'Nếu ' + esc(lc1(q.prompt)) : esc(q.prompt)}</div>
+      <div class="opts">${q.opts.map((o, i) => `<button class="opt" data-act="answer" data-i="${i}" ${c.answered != null ? 'disabled' : ''}><span class="key">${i + 1}</span><span>${esc(o)}</span></button>`).join('')}</div>
+      <div id="fb"></div></div>`;
+  } else if (c.t === 'type') {
+    const x = BYID[c.id];
+    body = `<div class="card"><div class="flash">Bậc 4 · Nhớ ra${c.practice ? ' · luyện' : ''}</div>
+      <div class="title">${esc(x.ten)}</div>
+      <div class="face"><div class="k">Nếu</div><div class="v">${esc(x.neu)}</div></div>
+      <div class="face"><div class="k">Thì … (tự gõ theo trí nhớ)</div>
+      ${c.revealed ? `<div class="v"><i>${esc(c.answer || '(không gõ gì)')}</i></div>
+        <div class="ok"><b>Bản chuẩn:</b> ${esc(x.thi)}</div>
+        <div class="small muted">Trùng từ khoá: <b>${c.score}%</b> (chỉ để tham khảo; bạn tự chấm theo ý chính).</div>
+        <div class="row mt"><button class="btn good" style="flex:1" data-act="selfgrade" data-ok="1">Nhớ <span class="kbd">1</span></button>
+        <button class="btn bad" style="flex:1" data-act="selfgrade" data-ok="0">Chưa nhớ <span class="kbd">2</span></button></div>`
+      : `<textarea id="typed" data-autofocus placeholder="Gõ phần Thì…"></textarea>
+        <button class="btn primary block mt" data-act="reveal">So với bản chuẩn <span class="kbd">Ctrl+Enter</span></button>`}
+      </div></div>`;
+  } else if (c.t === 'gameintro') {
+    body = `<div class="card"><h3>NẾU–THÌ 60 giây</h3><p class="muted">Ba kiểu câu xen kẽ, nhiễu cùng nhóm. Tốc độ tự chỉnh: dưới 90% đúng thì chậm lại, trên 95% thì nhanh lên. Hiện ${(P.game.limitMs / 1000).toFixed(1)} giây/câu.</p>
+      <button class="btn primary block" data-act="gamestart" data-real="1" data-autofocus>Bắt đầu</button></div>`;
+  }
+  return phaseHeader() + body;
+}
+function viewRest() {
+  const th = S.th;
+  if (!th) return `<div class="card"><h3>Ngày nghỉ</h3><p>Nghỉ ngơi cũng là một phần của việc học: trí nhớ được củng cố khi ngủ.</p><button class="btn block" data-act="exit">Về Hôm nay</button></div>`;
+  const rel = (th.muc_lien_quan || '').split(',').map(s => BYID[s.trim()]).filter(Boolean);
+  return `<div class="card"><div class="flash">Chủ nhật · 1 tình huống nhẹ</div><p>${esc(th.tinh_huong)}</p>
+    <div class="face"><div class="k">Tự hỏi (khung tư duy nhanh 5 bước)</div>
+    <div class="v small">1. Tình huống thuộc loại nào: rõ ràng, phức tạp, hay hỗn loạn? 2. Nếu sai có làm lại được không? 3. Nhân vật đã chặn điểm mù nào? Bạn sẽ làm khác gì?</div>
+    <textarea placeholder="Ghi nhanh suy nghĩ (không lưu)…"></textarea></div>
+    ${S.reveal ? `<div class="face"><div class="k">Từ khoá</div><div class="v">${esc(th.tu_khoa)}</div></div>
+      ${rel.length ? `<div class="face"><div class="k">Mục liên quan</div><div class="v">${rel.map(x => esc(x.ten)).join(' · ')}</div></div>` : ''}` : `<button class="btn block mt" data-act="restreveal">Xem từ khoá & mục liên quan</button>`}
+    <div class="row mt"><button class="btn" style="flex:1" data-act="restnext">Tình huống khác</button><button class="btn primary" style="flex:1" data-act="exit">Xong</button></div></div>`;
+}
+function viewSummary() {
+  const st = S.stat, pct = st.n ? Math.round(100 * st.ok / st.n) : 0;
+  const ups = [...new Set(st.up)].map(id => `<div>• ${esc(BYID[id].ten)} → bậc ${bacOf(id)} (${BAC_NAME[bacOf(id)]})</div>`).join('');
+  const tomorrow = BANK.filter(x => { const it = P.items[x.id]; return it && it.bac >= 2 && it.due && it.due <= addDays(today(), 1); }).length;
+  return `<div class="card center"><div class="flash">Tổng kết buổi</div><div class="big">${st.ok}/${st.n}</div><div class="muted">câu đúng (${pct}%)</div></div>
+    <div class="card"><h3>Lên bậc</h3>${ups || '<div class="muted">Chưa có mục lên bậc trong buổi này. Bậc 3–4 cần đúng ở 2 ngày khác nhau, nên mai sẽ thấy.</div>'}
+    <div class="face small">Ngày liên tiếp: <b>${streak()}</b> · Thẻ đến hạn ngày mai: <b>${tomorrow}</b> · Mục đạt bậc 5: <b>${countBac(5)}</b></div></div>
+    <button class="btn primary block" data-act="exit" data-autofocus>Về Hôm nay</button>`;
+}
+function answer(i) {
+  const c = S.cur; if (!c || c.answered != null) return;
+  const q = c.q, ok = q.opts[i] === q.ans; c.answered = i;
+  const btns = document.querySelectorAll('.opt');
+  btns.forEach((b, k) => { b.disabled = true; if (q.opts[k] === q.ans) b.classList.add('right'); else if (k === i) b.classList.add('wrong'); });
+  const kind = c.practice ? 'practice' : S.mode === 'test' ? 'test' : 'review';
+  const up = grade(c.id, c.level, ok, kind);
+  S.stat.n++; if (ok) S.stat.ok++; if (up) S.stat.up.push(c.id);
+  const x = BYID[c.id], it = prog(c.id);
+  // bậc 2: cần đúng 2 lần liền
+  if (c.level === 2 && it.bac === 2) {
+    if (!ok) S.queue.push({ t: 'card', id: c.id, again: true });
+    S.queue.push({ t: 'quiz', id: c.id, level: 2, practice: c.practice });
+  }
+  if (!ok && c.level >= 3 && S.phase !== 'test') S.queue.push({ t: 'card', id: c.id, again: true, review: true });
+  const fb = document.getElementById('fb');
+  fb.innerHTML = `<div class="${ok ? 'ok' : 'err'}">${ok ? 'Đúng.' : 'Chưa đúng.'} <b>${esc(x.ten)}</b>: Nếu ${esc(lc1(x.neu))} → ${esc(lc1(x.thi))}${up ? `<div class="mt"><b>Lên bậc ${it.bac} · ${BAC_NAME[it.bac]}</b></div>` : ''}</div>
+    <button class="btn primary block" data-act="next" data-autofocus>Tiếp <span class="kbd">Enter</span></button>`;
+  fb.querySelector('[data-act=next]').focus();
+}
+function understood() {
+  const c = S.cur, it = prog(c.id), note = document.getElementById('note');
+  if (note) it.note = note.value.trim();
+  if (!c.again) { if (it.bac < 2) { it.bac = 2; it.s2 = 0; it.learnedOn = today(); sessRec().neu++; S.stat.up.push(c.id); } }
+  save(); nextTask();
+}
+function reveal() {
+  const c = S.cur, x = BYID[c.id]; const v = (document.getElementById('typed') || {}).value || '';
+  c.answer = v.trim(); c.score = keywordScore(v, x.thi); c.revealed = true; render();
+}
+function selfgrade(ok) {
+  const c = S.cur; const kind = c.practice ? 'practice' : S.mode === 'test' ? 'test' : 'review';
+  const up = grade(c.id, 4, ok, kind);
+  S.stat.n++; if (ok) S.stat.ok++; if (up) S.stat.up.push(c.id);
+  if (!ok && S.phase !== 'test') S.queue.push({ t: 'card', id: c.id, again: true });
+  if (up) toast(`${BYID[c.id].ten} lên bậc 5 · Phản xạ`);
+  nextTask();
+}
+
+/* ================== Trò NẾU–THÌ 60 giây ================== */
+function startGame(real, from) {
+  const pool = real ? BANK.filter(x => bacOf(x.id) >= 5) : BANK.filter(x => bacOf(x.id) >= 1 || x.tuan <= curWeek());
+  if (pool.length < 4) { toast('Cần ít nhất 4 mục để chơi.'); return; }
+  if (from === 'academy') TAB = 'today';
+  G = { from: from || 'session', real, pool, total: 60000, t0: Date.now(), limit: real ? P.game.limitMs : 8000, n: 0, ok: 0, wrong: [], win: [], q: null, qStart: 0, raf: 0, over: false };
+  nextGameQ(); render(); loopGame();
+}
+function nextGameQ() {
+  const x = G.pool[Math.floor(Math.random() * G.pool.length)];
+  G.q = makeQuiz(x, 3); G.q.id = x.id; G.qStart = Date.now(); G.answered = false;
+}
+function loopGame() {
+  cancelAnimationFrame(G.raf);
+  const step = () => {
+    if (!G || G.over) return;
+    const now = Date.now(), tl = Math.max(0, G.total - (now - G.t0)), ql = Math.max(0, G.limit - (now - G.qStart));
+    const a = document.getElementById('gt'), b = document.getElementById('qt');
+    if (a) a.style.width = (100 * tl / G.total) + '%'; if (b) b.style.width = (100 * ql / G.limit) + '%';
+    const c = document.getElementById('gsec'); if (c) c.textContent = Math.ceil(tl / 1000);
+    if (tl <= 0) { endGame(); return; }
+    if (ql <= 0 && !G.answered) { gameAnswer(-1); return; }
+    G.raf = requestAnimationFrame(step);
+  };
+  G.raf = requestAnimationFrame(step);
+}
+function gameAnswer(i) {
+  if (!G || G.answered || G.over) return;
+  G.answered = true;
+  const ok = i >= 0 && G.q.opts[i] === G.q.ans;
+  G.n++; if (ok) G.ok++; else G.wrong.push(G.q.id);
+  G.win.push(ok ? 1 : 0);
+  if (G.real) { const it = prog(G.q.id); it.game = it.game || []; it.game.push(ok ? 1 : 0); if (it.game.length > 20) it.game.shift(); if (!ok) { it.due = addDays(today(), 1); } }
+  if (G.win.length >= 10) {
+    const acc = G.win.reduce((s, v) => s + v, 0) / G.win.length;
+    if (acc < 0.9) G.limit = Math.min(15000, G.limit + 1000); else if (acc > 0.95) G.limit = Math.max(3000, G.limit - 1000);
+    G.win = [];
+  }
+  const btns = document.querySelectorAll('.opt');
+  btns.forEach((b, k) => { b.disabled = true; if (G.q.opts[k] === G.q.ans) b.classList.add('right'); else if (k === i) b.classList.add('wrong'); });
+  setTimeout(() => { if (!G || G.over) return; nextGameQ(); render(); loopGame(); }, ok ? 350 : 1100);
+}
+function endGame() {
+  G.over = true; cancelAnimationFrame(G.raf);
+  if (G.real) { P.game.limitMs = G.limit; P.game.rounds.push([today(), G.n, G.ok]); const s = sessRec(); s.game = [G.n, G.ok]; s.total += G.n; s.correct += G.ok; save(); if (S && G.from === 'session' && S.stat) { S.stat.n += G.n; S.stat.ok += G.ok; } }
+  render();
+}
+function viewGame() {
+  if (G.over) {
+    const pct = G.n ? Math.round(100 * G.ok / G.n) : 0;
+    const wr = [...new Set(G.wrong)].map(id => `<div>• ${esc(BYID[id].ten)}</div>`).join('');
+    return `<div class="card center"><div class="flash">NẾU–THÌ 60 giây ${G.real ? '' : '· thử trước, không ghi điểm'}</div><div class="big">${G.ok}/${G.n}</div>
+      <div class="muted">${pct}% đúng · tốc độ lượt sau ${(G.limit / 1000).toFixed(1)} giây/câu</div>
+      ${pct >= 90 ? '<div class="ok">Giữ ≥ 90%: phản xạ vững.</div>' : '<div class="warn">Dưới 90%: các mục sai được đưa vào hàng ôn ngày mai.</div>'}</div>
+      ${wr ? `<div class="card"><h3>Cần ôn lại</h3>${wr}</div>` : ''}
+      <button class="btn primary block" data-act="gameexit" data-autofocus>${S ? 'Kết thúc buổi' : 'Đóng'}</button>`;
+  }
+  const q = G.q;
+  return `<div class="row" style="justify-content:space-between"><div class="flash">NẾU–THÌ 60 giây ${G.real ? '' : '· thử trước'}</div><div class="clock"><span id="gsec">60</span>s</div></div>
+    <div class="timer total"><i id="gt"></i></div>
+    <div class="card"><div class="qlabel">${esc(q.label)}</div><div class="q">${q.kind === 'neu2thi' ? 'Nếu ' + esc(lc1(q.prompt)) : esc(q.prompt)}</div>
+    <div class="timer"><i id="qt"></i></div>
+    <div class="opts">${q.opts.map((o, i) => `<button class="opt" data-act="ganswer" data-i="${i}"><span class="key">${i + 1}</span><span>${esc(o)}</span></button>`).join('')}</div></div>
+    <div class="center small muted">Đúng ${G.ok}/${G.n}</div>`;
+}
+
+/* ================== Học viện ================== */
+const LICH = (EMBED.lich || []).map(r => [r.tuan, esc(r.hoc_moi) + (r.so_muc ? ` <span class="muted">(${r.so_muc} mục${r.muc_uu_tien ? ', mức ' + esc(r.muc_uu_tien) : ''})</span>` : ''), r.tro_luyen_mo]);
+function inWeek(label, w) { const s = String(label); if (s.endsWith('+')) return w >= parseInt(s); const [a, b] = s.split('–').map(Number); return b ? w >= a && w <= b : w === a; }
+function viewAcademy() {
+  const w = curWeek(), groups = {};
+  BANK.forEach(x => { const key = x.nhom_hoc + '|' + x.tuan; (groups[key] = groups[key] || { name: x.nhom_hoc, tuan: x.tuan, items: [] }).items.push(x); });
+  const dist = [0, 1, 2, 3, 4, 5].map(b => BANK.filter(x => bacOf(x.id) === b).length);
+  const map = Object.values(groups).sort((a, b) => a.tuan - b.tuan || a.items[0].thu_tu - b.items[0].thu_tu).map(o => `
+    <div class="${o.tuan > w ? 'lock' : ''}" style="margin-bottom:10px"><div class="small"><b>${esc(o.name)}</b> <span class="pill">tuần ${o.tuan}</span></div>
+    <div>${o.items.map(x => `<button class="chip b${bacOf(x.id)}" data-act="peek" data-id="${esc(x.id)}" title="${esc(x.ten)} · bậc ${bacOf(x.id)}">${bacOf(x.id)}</button>`).join('')}</div></div>`).join('');
+  const peek = ACAD_PEEK && BYID[ACAD_PEEK] ? (() => { const x = BYID[ACAD_PEEK], it = prog(x.id);
+    const g = it.game && it.game.length ? Math.round(100 * it.game.reduce((s, v) => s + v, 0) / it.game.length) + '% đúng trong NẾU–THÌ' : '';
+    return `<div class="card"><div class="flash">Bậc ${it.bac} · ${BAC_NAME[it.bac]}${it.due ? ' · ôn ngày ' + it.due.split('-').reverse().join('/') : ''} ${g ? '· ' + g : ''}</div>${itemCard(x, true)}${it.note ? `<div class="face"><div class="k">Ví dụ của tôi</div><div class="v">${esc(it.note)}</div></div>` : ''}</div>`; })() : '';
+  const games = [
+    ['NẾU–THÌ 60 giây', 'Nếu ↔ Thì, hệ quả → tên, điền mắt xích. Mục bậc 5.', gameUnlocked(), `Mở từ tuần 2 khi ≥ 10 mục bậc 5 (hiện ${countBac(5)}).`],
+    ['Phòng cấp cứu 90 giây', 'Bắt từ khoá → chẩn đoán quy luật → kê phương pháp. Mục ≥ bậc 4.', false, 'Mở từ tuần 7 (bản sau).'],
+    ['Domino', 'Đoán 3 bậc hệ quả, chọn điểm chặn rẻ nhất. Chuỗi ≥ bậc 4.', false, 'Mở từ tuần 16 (bản sau).']];
+  return `<div class="card"><h2>Bản đồ 5 bậc</h2>
+    <div class="legend">${BAC_NAME.map((n, b) => `<span><i class="b${b}"></i>${b} ${n}: ${dist[b]}</span>`).join('')}</div>
+    <div class="mt">${map || '<div class="muted">Chưa có dữ liệu.</div>'}</div>
+    <div class="small muted">Bấm vào một ô để xem thẻ. Mục của tuần sau vẫn xem được trong Sổ tay.</div></div>
+    ${peek}
+    <div class="card"><h2>Ba trò luyện</h2>${games.map(([n, d, on, why], i) => `<div class="face ${on ? '' : 'lock'}"><div class="row" style="justify-content:space-between"><b>${n}</b>${on ? '<span class="pill acc">đã mở</span>' : '<span class="pill">khoá</span>'}</div><div class="small muted">${d}</div>${on ? '' : `<div class="small">${why}</div>`}
+      ${i === 0 ? `<button class="btn mt" data-act="gamestart" data-real="${on ? 1 : 0}">${on ? 'Chơi một lượt' : 'Thử trước (không ghi điểm)'}</button>` : ''}</div>`).join('')}</div>
+    <div class="card"><h2>Lịch 24 tuần</h2><table class="tbl"><tr><th>Tuần</th><th>Học mới</th><th>Mở trò</th></tr>
+    ${LICH.map(([a, b, c]) => `<tr class="${inWeek(a, w) ? 'cur' : ''}"><td>${a}</td><td>${b}</td><td>${c}</td></tr>`).join('')}</table>
+    <div class="small muted mt">Thứ tự học: mục phổ biến, quan trọng, hay dùng nhất trước (mức A → B → C). Bản thử chỉ nhúng sẵn tuần 1. Nạp file mindgym_data_NL_tong-hop_v1.xlsx ở Cài đặt để mở các tuần sau.</div></div>`;
+}
+let ACAD_PEEK = null, BOOK_Q = '', BOOK_W = '';
+
+/* ================== Sổ tay ================== */
+function viewBook() {
+  const q = BOOK_Q.toLowerCase();
+  const weeks = [...new Set(BANK.map(x => x.tuan))].sort((a, b) => a - b);
+  const list = BANK.filter(x => (!BOOK_W || String(x.tuan) === BOOK_W) && (!q || [x.ten, x.ten_goc, x.neu, x.thi, x.vi_du, x.tu_khoa, x.nhom].join(' ').toLowerCase().includes(q)));
+  return `<div class="card"><div class="row"><input type="text" id="bq" placeholder="Tìm quy luật, khung, từ khoá…" value="${esc(BOOK_Q)}" style="flex:2;min-width:180px">
+    <select id="bw" style="flex:1;min-width:120px"><option value="">Mọi tuần</option>${weeks.map(w => `<option value="${w}" ${String(w) === BOOK_W ? 'selected' : ''}>Tuần ${w}</option>`).join('')}</select></div>
+    <div class="small muted mt">${list.length} mục · nguồn: ${esc(BANK.source)}</div></div>
+    ${list.slice(0, 120).map(x => `<details class="card"><summary><span class="chip b${bacOf(x.id)}" style="cursor:inherit">${bacOf(x.id)}</span>${esc(x.ten)} <span class="pill">${esc(x.nhom)}</span></summary>${itemCard(x, false)}
+      <div class="face"><div class="k">Giới hạn</div><div class="v">${esc(x.gioi_han)}</div></div>
+      ${x.phong_ve ? `<div class="face"><div class="k">Nhận diện & phòng vệ</div><div class="v">${esc(x.phong_ve)}</div></div>` : ''}
+      ${x.dieu_kien ? `<div class="face"><div class="k">Điều kiện dùng</div><div class="v">${esc(x.dieu_kien)}</div></div>` : ''}
+      ${x.tu_khoa ? `<div class="face"><div class="k">Từ khoá nhận diện</div><div class="v">${esc(x.tu_khoa)}</div></div>` : ''}
+      <div class="small muted mt">${esc(x.id)} · tuần ${x.tuan}${x.uu_tien ? ` · ưu tiên ${x.uu_tien}/15 (${esc(x.muc_uu_tien)})` : ''}</div></details>`).join('')}
+    ${list.length > 120 ? '<div class="muted center">Hiện 120 mục đầu, hãy tìm hẹp hơn.</div>' : ''}`;
+}
+
+/* ================== Cài đặt ================== */
+function viewSettings() {
+  const prof = PROFILES.list.map(p => `<option value="${esc(p.id)}" ${p.id === PROFILES.current ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
+  return `<div class="card"><h2>Hồ sơ</h2><div class="row"><select id="profSel" style="flex:1">${prof}</select>
+    <button class="btn" data-act="profnew">Thêm</button><button class="btn" data-act="profren">Đổi tên</button><button class="btn" data-act="profdel">Xoá</button></div>
+    <div class="small muted mt">Mỗi hồ sơ có tiến độ riêng, lưu trong trình duyệt của máy này.</div></div>
+  <div class="card"><h2>Lịch học</h2>
+    <label class="small">Thứ Hai của tuần 1</label><input type="date" id="startMon" value="${esc(P.startMonday)}">
+    <div class="row mt"><button class="btn" data-act="weekstart">Bắt đầu tuần 1 từ tuần này</button></div>
+    <div class="small muted mt">Hôm nay là tuần ${curWeek()}. Thứ Bảy luôn là kiểm tra, Chủ nhật là ngày nghỉ.</div></div>
+  <div class="card"><h2>Dữ liệu bài học</h2><div class="small">Đang dùng: <b>${esc(BANK.source)}</b> · ${BANK.length} mục · ${TH.length} tình huống</div>
+    <div class="row mt"><label class="btn primary">Nhập Excel / JSON<input type="file" id="fileData" accept=".xlsx,.json" class="hidden"></label>
+    <button class="btn" data-act="datareset">Về dữ liệu nhúng sẵn</button></div>
+    <div class="small muted mt">Excel theo mẫu chung: sheet <b>muc</b> (cột id, tuan, loai, nhom, ten, ten_goc, neu, thi, chuoi, vi_du, gioi_han, tu_khoa…), sheet <b>tinh_huong</b> tuỳ chọn. Tiến độ giữ nguyên theo id.</div>
+    <div id="importMsg"></div></div>
+  <div class="card"><h2>Tiến độ</h2><div class="row"><button class="btn" data-act="progexport">Xuất tiến độ (.json)</button>
+    <label class="btn">Nhập tiến độ<input type="file" id="fileProg" accept=".json" class="hidden"></label>
+    <button class="btn bad" data-act="progreset">Xoá tiến độ hồ sơ này</button></div></div>
+  <div class="card"><h2>Chế độ thử</h2><div class="small muted">Dành cho Min kiểm tra luồng học mà không phải chờ ngày thật. Tắt khi dùng thật.</div>
+    <label class="small mt">Coi hôm nay là</label><select id="dayOv"><option value="">Theo lịch thật</option>${[1,2,3,4,5,6,0].map(d => `<option value="${d}" ${String(P.dayOverride) === String(d) ? 'selected' : ''}>${DAYNAME[d]}</option>`).join('')}</select>
+    <div class="row mt"><button class="btn" data-act="dayplus">Giả lập sang ngày mới (+1)</button><button class="btn" data-act="dayzero" ${P.offset ? '' : 'disabled'}>Về ngày thật (đang +${P.offset || 0})</button></div></div>
+  <div class="card small muted">MindGym v1.0 · chạy không cần mạng · phím tắt: <span class="kbd">1</span>–<span class="kbd">4</span> chọn, <span class="kbd">Enter</span> tiếp, <span class="kbd">Ctrl+Enter</span> so bản chuẩn.</div>`;
+}
+
+/* ================== Đọc file .xlsx (không thư viện) ================== */
+async function inflateRaw(u8) {
+  const ds = new DecompressionStream('deflate-raw');
+  const stream = new Blob([u8]).stream().pipeThrough(ds);
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+async function unzip(buf) {
+  const u8 = new Uint8Array(buf), dv = new DataView(buf), files = {};
+  let eocd = -1;
+  for (let i = u8.length - 22; i >= Math.max(0, u8.length - 70000); i--) if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  if (eocd < 0) throw new Error('Không phải file .xlsx hợp lệ');
+  const n = dv.getUint16(eocd + 10, true); let p = dv.getUint32(eocd + 16, true);
+  const td = new TextDecoder();
+  for (let k = 0; k < n; k++) {
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true), nl = dv.getUint16(p + 28, true), xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true), lo = dv.getUint32(p + 42, true);
+    const name = td.decode(u8.subarray(p + 46, p + 46 + nl));
+    const lnl = dv.getUint16(lo + 26, true), lxl = dv.getUint16(lo + 28, true);
+    const data = u8.subarray(lo + 30 + lnl + lxl, lo + 30 + lnl + lxl + csize);
+    files[name] = { method, data };
+    p += 46 + nl + xl + cl;
+  }
+  return { async text(name) { const f = files[name]; if (!f) return null; const raw = f.method === 0 ? f.data : await inflateRaw(f.data); return td.decode(raw); }, has: n => !!files[n] };
+}
+function colIdx(ref) { let n = 0; for (const ch of ref.replace(/[0-9]/g, '')) n = n * 26 + (ch.charCodeAt(0) - 64); return n - 1; }
+async function readXlsx(buf) {
+  const z = await unzip(buf), dp = new DOMParser();
+  const xml = async n => { const t = await z.text(n); return t ? dp.parseFromString(t, 'application/xml') : null; };
+  const wb = await xml('xl/workbook.xml'), rels = await xml('xl/_rels/workbook.xml.rels');
+  const ss = await xml('xl/sharedStrings.xml');
+  const shared = ss ? [...ss.getElementsByTagName('si')].map(si => [...si.getElementsByTagName('t')].map(t => t.textContent).join('')) : [];
+  const relMap = {}; [...rels.getElementsByTagName('Relationship')].forEach(r => relMap[r.getAttribute('Id')] = r.getAttribute('Target'));
+  const out = {};
+  for (const sh of [...wb.getElementsByTagName('sheet')]) {
+    const rid = sh.getAttribute('r:id') || sh.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id');
+    let target = relMap[rid] || ''; target = target.replace(/^\//, ''); if (!target.startsWith('xl/')) target = 'xl/' + target;
+    const doc = await xml(target); if (!doc) continue;
+    const rows = [];
+    for (const r of [...doc.getElementsByTagName('row')]) {
+      const arr = [];
+      for (const c of [...r.getElementsByTagName('c')]) {
+        const t = c.getAttribute('t'), ref = c.getAttribute('r'); let v = '';
+        if (t === 'inlineStr') v = [...c.getElementsByTagName('t')].map(x => x.textContent).join('');
+        else { const ve = c.getElementsByTagName('v')[0]; v = ve ? ve.textContent : ''; if (t === 's') v = shared[Number(v)] ?? ''; }
+        arr[ref ? colIdx(ref) : arr.length] = v;
+      }
+      rows.push(arr);
+    }
+    out[sh.getAttribute('name')] = rows;
+  }
+  return out;
+}
+function rowsToObjects(rows) {
+  if (!rows || !rows.length) return [];
+  const hdr = rows[0].map(h => String(h || '').trim());
+  return rows.slice(1).filter(r => r && r.some(v => v !== '' && v != null)).map(r => { const o = {}; hdr.forEach((h, i) => { if (h) o[h] = r[i] == null ? '' : r[i]; }); return o; });
+}
+async function importData(file) {
+  const msg = document.getElementById('importMsg');
+  try {
+    let data;
+    if (file.name.toLowerCase().endsWith('.json')) {
+      const j = JSON.parse(await file.text()); data = Array.isArray(j) ? { muc: j } : j;
+    } else {
+      const sheets = await readXlsx(await file.arrayBuffer());
+      const muc = rowsToObjects(sheets.muc || sheets.Muc || sheets[Object.keys(sheets).find(k => /muc/i.test(k))]);
+      const th = rowsToObjects(sheets.tinh_huong || []);
+      data = { muc, tinh_huong: th };
+    }
+    const items = (data.muc || []).map(normItem).filter(x => x.id && x.ten && x.neu && x.thi);
+    const ids = new Set(); const dup = items.filter(x => ids.has(x.id) || !ids.add(x.id)).map(x => x.id);
+    if (!items.length) throw new Error('Không tìm thấy dòng hợp lệ trong sheet "muc" (cần cột id, ten, neu, thi).');
+    if (dup.length) throw new Error('Trùng id: ' + dup.slice(0, 5).join(', '));
+    const ok = store.set(KEY_DATA, { ten: file.name, muc: items, tinh_huong: data.tinh_huong || [] });
+    loadBank(); render();
+    toast(`Đã nạp ${items.length} mục từ ${file.name}${ok ? '' : ' (chỉ trong phiên này: trình duyệt chặn lưu)'}`);
+  } catch (e) { if (msg) msg.innerHTML = `<div class="err">${esc(e.message || e)}</div>`; }
+}
+
+/* ================== Sự kiện ================== */
+document.addEventListener('click', e => {
+  const tabB = e.target.closest('[data-tab]'); if (tabB) { if (G && !G.over) { G.over = true; cancelAnimationFrame(G.raf); G = null; } go(tabB.dataset.tab); return; }
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const a = b.dataset.act;
+  switch (a) {
+    case 'theme': { const cur = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'; document.documentElement.dataset.theme = cur; store.set(KEY_THEME, cur); break; }
+    case 'start': startSession(b.dataset.mode); break;
+    case 'understood': understood(); break;
+    case 'answer': answer(Number(b.dataset.i)); break;
+    case 'next': nextTask(); break;
+    case 'reveal': reveal(); break;
+    case 'selfgrade': selfgrade(b.dataset.ok === '1'); break;
+    case 'skipphase': if (S) { if (S.cur && S.cur.t === 'gameintro') { finishPhase(); } else finishPhase(); } break;
+    case 'gamestart': startGame(b.dataset.real === '1', TAB === 'academy' ? 'academy' : 'session'); break;
+    case 'ganswer': gameAnswer(Number(b.dataset.i)); break;
+    case 'gameexit': { const from = G && G.from; G = null; if (from === 'academy') { TAB = 'academy'; render(); } else if (S) endSession(); else render(); break; }
+    case 'exit': S = null; stopTimer(); render(); break;
+    case 'restreveal': S.reveal = true; render(); break;
+    case 'restnext': S.th = TH[Math.floor(Math.random() * TH.length)]; S.reveal = false; render(); break;
+    case 'peek': ACAD_PEEK = b.dataset.id; render(); break;
+    case 'profnew': { const n = prompt('Tên hồ sơ mới:'); if (n && n.trim()) { const id = 'p' + Date.now().toString(36); PROFILES.list.push({ id, name: n.trim() }); PROFILES.current = id; store.set(KEY_PROFILES, PROFILES); store.set(pkey(id), newProgress(n.trim())); loadProfiles(); S = null; render(); } break; }
+    case 'profren': { const n = prompt('Tên mới:', curProfile().name); if (n && n.trim()) { curProfile().name = n.trim(); P.name = n.trim(); store.set(KEY_PROFILES, PROFILES); save(); render(); } break; }
+    case 'profdel': { if (PROFILES.list.length < 2) { toast('Cần giữ ít nhất 1 hồ sơ.'); break; } if (confirm('Xoá hồ sơ "' + curProfile().name + '" và toàn bộ tiến độ?')) { store.del(pkey(PROFILES.current)); PROFILES.list = PROFILES.list.filter(p => p.id !== PROFILES.current); PROFILES.current = PROFILES.list[0].id; store.set(KEY_PROFILES, PROFILES); loadProfiles(); S = null; render(); } break; }
+    case 'weekstart': P.startMonday = mondayOf(today()); save(); render(); toast('Tuần 1 bắt đầu từ thứ Hai tuần này.'); break;
+    case 'datareset': store.del(KEY_DATA); loadBank(); render(); toast('Đã về dữ liệu nhúng sẵn.'); break;
+    case 'progexport': {
+      const blob = new Blob([JSON.stringify({ app: 'MindGym', v: 1, profile: curProfile().name, data: P }, null, 1)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob); const l = document.createElement('a'); l.href = url; l.download = `mindgym_tien-do_${curProfile().name}_${today()}.json`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); break; }
+    case 'progreset': if (confirm('Xoá toàn bộ tiến độ của hồ sơ này?')) { P = newProgress(curProfile().name); save(); S = null; render(); } break;
+    case 'dayplus': P.offset = (P.offset || 0) + 1; save(); S = null; render(); toast('Đã giả lập sang ngày mới.'); break;
+    case 'dayzero': P.offset = 0; save(); S = null; render(); break;
+  }
+});
+document.addEventListener('change', async e => {
+  const t = e.target;
+  if (t.id === 'profSel') { PROFILES.current = t.value; store.set(KEY_PROFILES, PROFILES); loadProfiles(); S = null; render(); }
+  else if (t.id === 'startMon' && t.value) { P.startMonday = mondayOf(t.value); save(); render(); }
+  else if (t.id === 'dayOv') { P.dayOverride = t.value === '' ? null : Number(t.value); save(); S = null; render(); }
+  else if (t.id === 'bw') { BOOK_W = t.value; render(); }
+  else if (t.id === 'fileData' && t.files[0]) { await importData(t.files[0]); }
+  else if (t.id === 'fileProg' && t.files[0]) {
+    try { const j = JSON.parse(await t.files[0].text()); const d = j.data || j; if (!d.items) throw new Error('File không đúng định dạng tiến độ MindGym'); P = Object.assign(newProgress(curProfile().name), d); save(); render(); toast('Đã nhập tiến độ.'); }
+    catch (err) { toast('Lỗi: ' + err.message); }
+  }
+});
+document.addEventListener('input', e => { if (e.target.id === 'bq') { BOOK_Q = e.target.value; const pos = e.target.selectionStart; render(); const el = $('#bq'); if (el) { el.focus(); el.setSelectionRange(pos, pos); } } });
+document.addEventListener('keydown', e => {
+  if (TAB !== 'today') return;
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (G && !G.over) { const k = '1234'.indexOf(e.key); if (k >= 0) { e.preventDefault(); gameAnswer(k); } return; }
+  if (!S || !S.cur) return;
+  const c = S.cur;
+  if (tag === 'textarea') { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); if (c.t === 'type' && !c.revealed) reveal(); else if (c.t === 'card') understood(); } return; }
+  if (c.t === 'quiz') {
+    if (c.answered == null) { const k = '1234'.indexOf(e.key); const k2 = 'abcd'.indexOf(e.key.toLowerCase()); const i = k >= 0 ? k : k2; if (i >= 0 && i < c.q.opts.length) { e.preventDefault(); answer(i); } }
+    else if (e.key === 'Enter') { e.preventDefault(); nextTask(); }
+  } else if (c.t === 'card' && e.key === 'Enter') { e.preventDefault(); understood(); }
+  else if (c.t === 'type' && c.revealed) { if (e.key === '1') selfgrade(true); if (e.key === '2') selfgrade(false); }
+  else if (c.t === 'info' && e.key === 'Enter') { e.preventDefault(); finishPhase(); }
+});
+
+/* ================== Khởi động ================== */
+(function init() {
+  let th = store.get(KEY_THEME, null);
+  if (!th) { try { th = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'; } catch (e) { th = 'dark'; } }
+  document.documentElement.dataset.theme = th;
+  loadBank(); loadProfiles(); render();
+})();
+</script>
+</body>
+</html>
