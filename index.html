@@ -3,8 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MindGym v1.4 – Luyện nhanh</title>
+<title>MindGym v1.5 – Sửa Sổ tay</title>
 <!--
+  MindGym v1.5 – SỬA SỔ TAY + LƯU LÊN GITHUB (10/11/2026)
+  - Sổ tay: nút «✏️ Sửa» ở mỗi mục — sửa mọi ô chữ (tên, Nếu/Thì, ví dụ, giới hạn, phòng vệ, các phần Chi tiết, các ô chữ Domino).
+    Ô có * không được để trống; «↺ Về bản gốc» bỏ mọi chỗ sửa của mục. Lọc «Chỉ mục đã sửa»; mục đã sửa có nhãn «đã sửa».
+  - Bản sửa chỉ lưu phần khác bản gốc (lớp phủ theo id) → «Dựng lại v2» nhúng dữ liệu mới vẫn giữ được chỗ Min đã sửa.
+  - Lưu lên GitHub: file so_tay_sua.json trong repo (mặc định saoluubhxh05/mindgym) qua GitHub API, dùng token fine-grained
+    (Contents: Read and write) dán 1 lần trên mỗi máy dùng để sửa. Máy chỉ xem không cần token: mở app tự đọc file này.
+  - Đồng bộ: lúc mở app, lúc quay lại app (> 1 phút), nút «Đồng bộ ngay». Mỗi mục: bản sửa sau cùng thắng. Mất mạng → lưu trong máy, đẩy lên lần sau.
+  - Khoá mới: mindgym_v1_sotay (bản sửa, dùng chung mọi hồ sơ), mindgym_v1_github (repo + token của máy). Tiến độ cũ giữ nguyên.
+
   MindGym v1.4 – LUYỆN NHANH + PHẢN HỒI CẢI TIẾN (08/11/2026)
   - Tab Hôm nay: thanh «Luyện nhanh» ở đầu trang, 3 nút 🚑 Cấp cứu · 🧱 Domino · ⚡ NẾU–THÌ (đã mở → lượt thật, chưa mở → lượt thử).
   - Phím tắt khi không đang làm bài: C Cấp cứu · D Domino · N NẾU–THÌ · H Hôm nay · A Học viện.
@@ -231,11 +240,16 @@ a.btn{text-decoration:none;color:inherit}
 .lnkrow a.btn{flex:1}
 .lnkurl{word-break:break-all}
 @media (max-width:340px){.qbtn b{font-size:14px}.qbtn .qs{display:none}}
+/* v1.5 sửa Sổ tay */
+.edf .edl{display:block;margin:12px 0 4px;font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.3px}
+.edf textarea,#ghcard input{width:100%;box-sizing:border-box;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:16px;line-height:1.5;resize:vertical}
+.edf textarea:focus,#ghcard input:focus{outline:2px solid var(--accent);outline-offset:0}
+#ghcard ol{padding-left:20px;margin:8px 0}#ghcard li{margin:4px 0}#ghcard a{color:var(--accent)}
 </style>
 </head>
 <body>
 <header class="top"><div class="wrap">
-  <div><div class="logo">Mind<b>Gym</b> <span class="pill">v1.4</span></div><div class="sub" id="hdrSub"></div></div>
+  <div><div class="logo">Mind<b>Gym</b> <span class="pill">v1.5</span></div><div class="sub" id="hdrSub"></div></div>
   <div class="sp"></div>
   <button class="iconbtn" data-act="theme" title="Đổi giao diện sáng/tối" aria-label="Đổi giao diện">◐</button>
 </div></header>
@@ -299,6 +313,7 @@ function loadBank() {
       if (r && !x.dc_khe && r.dc_khe) { DC_KEYS.forEach(k => { if (r[k]) x[k] = String(r[k]); }); if (r.dc_cho_duyet) x.dc_cho_duyet = 1; } });
   }
   TL = {}; (((imp && imp.tai_lieu && imp.tai_lieu.length) ? imp.tai_lieu : EMBED.tai_lieu) || []).forEach(r => TL[r.ma] = r);
+  snapOrig(); applyEdits();   // v1.5: lớp sửa Sổ tay
 }
 function normItem(r) {
   const s = k => (r[k] == null ? '' : String(r[k]).trim());
@@ -1386,19 +1401,217 @@ let ACAD_PEEK = null, BOOK_Q = '', BOOK_W = '', BOOK_CT = '';
 function viewBook() {
   const q = BOOK_Q.toLowerCase();
   const weeks = [...new Set(BANK.map(x => x.tuan))].sort((a, b) => a - b);
-  const list = BANK.filter(x => (!BOOK_W || String(x.tuan) === BOOK_W) && (!BOOK_CT || hasCt(x)) && (!q || [x.ten, x.ten_goc, x.neu, x.thi, x.vi_du, x.tu_khoa, x.nhom, ...CT_KEYS.map(k => x[k] || '')].join(' ').toLowerCase().includes(q)));
+  const list = BANK.filter(x => (!BOOK_W || String(x.tuan) === BOOK_W) && (!BOOK_CT || (BOOK_CT === '2' ? isEdited(x.id) : hasCt(x))) && (!q || [x.ten, x.ten_goc, x.neu, x.thi, x.vi_du, x.tu_khoa, x.nhom, ...CT_KEYS.map(k => x[k] || '')].join(' ').toLowerCase().includes(q)));
   return `<div class="card"><div class="row"><input type="text" id="bq" placeholder="Tìm quy luật, khung, từ khoá…" value="${esc(BOOK_Q)}" style="flex:2;min-width:180px">
     <select id="bw" style="flex:1;min-width:120px"><option value="">Mọi tuần</option>${weeks.map(w => `<option value="${w}" ${String(w) === BOOK_W ? 'selected' : ''}>Tuần ${w}</option>`).join('')}</select>
-    <select id="bct" style="flex:1;min-width:150px"><option value="">Mọi mục</option><option value="1" ${BOOK_CT ? 'selected' : ''}>Chỉ mục có chi tiết (${BANK.filter(hasCt).length})</option></select></div>
-    <div class="small muted mt">${list.length} mục · nguồn: ${esc(BANK.source)}</div></div>
-    ${list.slice(0, 120).map(x => `<details class="card"><summary><span class="chip b${bacOf(x.id)}" style="cursor:inherit">${bacOf(x.id)}</span>${esc(x.ten)} <span class="pill">${esc(x.nhom)}</span></summary>${itemCard(x, false)}
+    <select id="bct" style="flex:1;min-width:150px"><option value="">Mọi mục</option><option value="1" ${BOOK_CT === '1' ? 'selected' : ''}>Chỉ mục có chi tiết (${BANK.filter(hasCt).length})</option><option value="2" ${BOOK_CT === '2' ? 'selected' : ''}>Chỉ mục đã sửa (${editedCount()})</option></select></div>
+    <div class="small muted mt">${list.length} mục · nguồn: ${esc(BANK.source)}</div>${syncLine()}</div>
+    ${list.slice(0, 120).map(x => `<details class="card" data-bid="${esc(x.id)}" ${BOOK_OPEN.has(x.id) || BOOK_ED === x.id ? 'open' : ''}><summary><span class="chip b${bacOf(x.id)}" style="cursor:inherit">${bacOf(x.id)}</span>${esc(x.ten)} <span class="pill">${esc(x.nhom)}</span>${isEdited(x.id) ? ' <span class="pill acc">đã sửa</span>' : ''}</summary>${BOOK_ED === x.id ? editForm(x) : `${itemCard(x, false)}
       <div class="face"><div class="k">Giới hạn</div><div class="v">${esc(x.gioi_han)}</div></div>
       ${x.phong_ve ? `<div class="face"><div class="k">Nhận diện & phòng vệ</div><div class="v">${esc(x.phong_ve)}</div></div>` : ''}
       ${x.dieu_kien ? `<div class="face"><div class="k">Điều kiện dùng</div><div class="v">${esc(x.dieu_kien)}</div></div>` : ''}
       ${x.tu_khoa ? `<div class="face"><div class="k">Từ khoá nhận diện</div><div class="v">${esc(x.tu_khoa)}</div></div>` : ''}
-      <div class="small muted mt">${esc(x.id)} · tuần ${x.tuan}${x.uu_tien ? ` · ưu tiên ${x.uu_tien}/15 (${esc(x.muc_uu_tien)})` : ''}</div></details>`).join('')}
+      <div class="small muted mt">${esc(x.id)} · tuần ${x.tuan}${x.uu_tien ? ` · ưu tiên ${x.uu_tien}/15 (${esc(x.muc_uu_tien)})` : ''}</div>
+      <div class="row mt"><button class="btn" data-act="bked" data-id="${esc(x.id)}">✏️ Sửa mục này</button></div>`}</details>`).join('')}
     ${list.length > 120 ? '<div class="muted center">Hiện 120 mục đầu, hãy tìm hẹp hơn.</div>' : ''}`;
 }
+
+/* ================== v1.5: Sửa Sổ tay + lưu lên GitHub (dùng chung mọi thiết bị) ================== */
+const ED_FIELDS = [['ten','Tên'],['ten_goc','Tên gốc / nguồn'],['nhom','Nhóm'],['loai','Loại'],['neu','Nếu'],['thi','Thì'],['chuoi','Chuỗi (các bậc ngăn bởi →)'],['vi_du','Ví dụ'],
+  ['gioi_han','Giới hạn'],['phong_ve','Nhận diện & phòng vệ'],['dieu_kien','Điều kiện dùng'],['tu_khoa','Từ khoá nhận diện'],
+  ['ct_nguon_goc','Chi tiết · Nguồn gốc'],['ct_co_che','Chi tiết · Cơ chế – vì sao nó đúng'],['ct_bang_chung','Chi tiết · Mức bằng chứng (mở đầu bằng A – / B – / C – / D –)'],
+  ['ct_quy_trinh','Chi tiết · Quy trình (các bước ngăn bởi ||)'],['ct_vi_du_mau','Chi tiết · Ví dụ giải mẫu'],['ct_bien_the','Chi tiết · Biến thể & mô hình họ hàng'],
+  ['ct_gioi_han','Chi tiết · Giới hạn – khi nào không dùng'],['ct_sai_lam','Chi tiết · Sai lầm hay gặp (ngăn bởi ||)'],['ct_phong_ve','Chi tiết · Nhận diện – phòng vệ – dùng chính danh'],
+  ['ct_tu_kiem_tra','Chi tiết · Tự kiểm tra (câu ⇒ đáp, các câu ngăn bởi ||)'],['ct_ghi_chu','Chi tiết · Ghi chú'],
+  ['dc_tinh_huong','Domino · Tình huống'],['dc_dau_hieu','Domino · Dấu hiệu sớm'],['dc_diem_chan','Domino · Điểm chặn'],['dc_cach_chan','Domino · Cách chặn (ngăn bởi ||)'],
+  ['dc_cai_gia','Domino · Cái giá'],['dc_giai_thich','Domino · Giải thích đáp án'],['dc_ghi_chu','Domino · Ghi chú']];
+const ED_CORE = new Set(['ten','ten_goc','nhom','neu','thi','vi_du','gioi_han']);
+const ED_REQ = { ten: 'Tên', neu: 'Nếu', thi: 'Thì' };
+const KEY_ST = 'mindgym_v1_sotay', KEY_GH = 'mindgym_v1_github';
+let ORIG = {}, ST = null, BOOK_ED = null, BOOK_OPEN = new Set();
+const SYNC = { st: 'idle', msg: '', busy: false };
+function stLoad() { ST = store.get(KEY_ST, null); if (!ST || typeof ST.muc !== 'object') ST = { muc: {}, cho: [], dong_bo: 0 }; ST.cho = ST.cho || []; return ST; }
+function stSave() { store.set(KEY_ST, ST); }
+function snapOrig() { ORIG = {}; BANK.forEach(x => { const o = {}; ED_FIELDS.forEach(([k]) => { if (x[k]) o[k] = x[k]; }); ORIG[x.id] = o; }); }
+function applyEdits() {
+  if (!ST) stLoad();
+  BANK.forEach(x => {
+    const o = ORIG[x.id] || {};
+    ED_FIELDS.forEach(([k]) => { if (o[k]) x[k] = o[k]; else delete x[k]; });
+    const r = ST.muc[x.id];
+    if (r && !r.goc && r.f) Object.entries(r.f).forEach(([k, v]) => { if (ED_FIELDS.some(f => f[0] === k)) { if (v) x[k] = String(v); else delete x[k]; } });
+    if (!x.ten) x.ten = o.ten || x.id; if (!x.neu) x.neu = o.neu || '…'; if (!x.thi) x.thi = o.thi || '…';
+  });
+}
+function isEdited(id) { const r = ST && ST.muc[id]; return !!(r && !r.goc && r.f && Object.keys(r.f).length); }
+function editedCount() { return BANK.filter(x => isEdited(x.id)).length; }
+
+/* ---- GitHub ---- */
+function ghCfg() {
+  const c = store.get(KEY_GH, null) || {};
+  let owner = 'saoluubhxh05', repo = 'mindgym';
+  try { if (/\.github\.io$/i.test(location.hostname)) { owner = location.hostname.split('.')[0]; const seg = location.pathname.split('/').filter(Boolean)[0]; if (seg && !/\.html?$/i.test(seg)) repo = seg; } } catch (e) {}
+  return { owner: c.owner || owner, repo: c.repo || repo, token: c.token || '', path: c.path || 'so_tay_sua.json' };
+}
+const b64e = s => { const b = new TextEncoder().encode(s); let bin = ''; for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(bin); };
+const b64d = s => new TextDecoder().decode(Uint8Array.from(atob(String(s).replace(/\s/g, '')), c => c.charCodeAt(0)));
+async function ghFetch(url, opt, cfg) {
+  const h = { Accept: 'application/vnd.github+json' };
+  if (cfg.token) h.Authorization = 'Bearer ' + cfg.token;
+  if (opt && opt.body) h['Content-Type'] = 'application/json';
+  return fetch(url, Object.assign({ cache: 'no-store', headers: h }, opt || {}));
+}
+function ghUrl(cfg) { return `https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents/${cfg.path.split('/').map(encodeURIComponent).join('/')}`; }
+function ghErr(r, j) {
+  if (r.status === 401) return 'Token sai hoặc đã hết hạn.';
+  if (r.status === 403 && /rate limit/i.test((j && j.message) || '')) return 'GitHub tạm giới hạn lượt đọc (60 lượt/giờ khi chưa có token). Thử lại sau.';
+  if (r.status === 403) return 'Token chưa có quyền ghi (cần Contents: Read and write cho repo này).';
+  if (r.status === 404) return 'Không thấy repo — kiểm tra tên tài khoản/repo, hoặc token chưa được cấp quyền cho repo này.';
+  return 'GitHub báo lỗi ' + r.status + (j && j.message ? ': ' + j.message : '');
+}
+async function ghPull(cfg) {
+  try {
+    const r = await ghFetch(ghUrl(cfg), null, cfg);
+    if (r.status === 404 && cfg.token) { const r2 = await ghFetch(`https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}`, null, cfg); if (r2.ok) return { data: { muc: {} }, sha: null }; throw new Error(ghErr(r2, await r2.json().catch(() => null))); }
+    if (r.status === 404) return { data: { muc: {} }, sha: null };
+    const j = await r.json().catch(() => null);
+    if (!r.ok) throw new Error(ghErr(r, j));
+    const data = JSON.parse(b64d(j.content || '') || '{}');
+    return { data: data && data.muc ? data : { muc: {} }, sha: j.sha };
+  } catch (e) {
+    if (!cfg.token && /^https?:$/.test(location.protocol)) {   // dự phòng: đọc file tĩnh trên GitHub Pages
+      try { const r = await fetch(cfg.path + '?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) { const d = await r.json(); return { data: d && d.muc ? d : { muc: {} }, sha: null }; } if (r.status === 404) return { data: { muc: {} }, sha: null }; } catch (e2) {}
+    }
+    throw e instanceof TypeError ? new Error('Không kết nối được GitHub (mất mạng?).') : e;
+  }
+}
+function stMerge(remote) {   // mỗi mục: bản nào sửa sau thì thắng
+  const out = {}, rm = (remote && remote.muc) || {}, lm = ST.muc;
+  new Set([...Object.keys(rm), ...Object.keys(lm)]).forEach(id => {
+    const a = rm[id], b = lm[id];
+    out[id] = !a ? b : !b ? a : ((b.t || 0) > (a.t || 0) ? b : a);
+  });
+  ST.cho = ST.cho.filter(id => out[id] === lm[id] && (!rm[id] || (lm[id].t || 0) > (rm[id].t || 0)));
+  return out;
+}
+function bookRefresh() { if (TAB === 'book' && !BOOK_ED) { const y = window.scrollY; render(); window.scrollTo(0, y); } else if (TAB === 'settings') render(); }
+async function syncNow(quiet) {
+  if (SYNC.busy) return; SYNC.busy = true; SYNC.st = 'dang'; SYNC.msg = '';
+  const cfg = ghCfg();
+  try {
+    for (let lan = 0; lan < 3; lan++) {
+      const { data, sha } = await ghPull(cfg);
+      const before = JSON.stringify(ST.muc);
+      ST.muc = stMerge(data);
+      const needPush = ST.cho.length > 0 && cfg.token;
+      if (!needPush) { ST.dong_bo = Date.now(); stSave(); if (JSON.stringify(ST.muc) !== before) { applyEdits(); } SYNC.st = ST.cho.length ? 'cho' : 'ok'; break; }
+      const body = { app: 'MindGym', loai: 'so_tay_sua', v: 1, cap_nhat: new Date().toISOString(), muc: ST.muc };
+      const r = await ghFetch(ghUrl(cfg), { method: 'PUT', body: JSON.stringify(Object.assign({ message: 'Sổ tay: sửa ' + ST.cho.slice(0, 5).join(', ') + (ST.cho.length > 5 ? '…' : ''), content: b64e(JSON.stringify(body, null, 1)) }, sha ? { sha } : {})) }, cfg);
+      if (r.status === 409 || r.status === 422) { if (lan < 2) continue; }
+      const j = await r.json().catch(() => null);
+      if (!r.ok) throw new Error(ghErr(r, j));
+      const n = ST.cho.length; ST.cho = []; ST.dong_bo = Date.now(); stSave(); applyEdits(); SYNC.st = 'ok';
+      if (!quiet) toast(`☁️ Đã lưu ${n} mục lên GitHub.`);
+      break;
+    }
+  } catch (e) { SYNC.st = 'loi'; SYNC.msg = e.message || String(e); stSave(); if (!quiet) toast('Chưa lưu được lên GitHub: ' + SYNC.msg); }
+  SYNC.busy = false; bookRefresh();
+}
+function syncLine() {
+  const cfg = ghCfg(), n = editedCount(), cho = ST.cho.length;
+  const when = ST.dong_bo ? new Date(ST.dong_bo).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '';
+  let s = SYNC.st === 'dang' ? '⏳ Đang đồng bộ với GitHub…'
+    : SYNC.st === 'loi' ? `<span style="color:var(--bad)">⚠️ ${esc(SYNC.msg)}</span>`
+    : cho ? (cfg.token ? `⏳ ${cho} mục chờ lưu lên GitHub` : `💾 ${cho} mục mới lưu trong máy này — <button class="lnk" data-act="gogh">thêm token GitHub</button> để các máy khác thấy`)
+    : ST.dong_bo ? `☁️ Đã đồng bộ ${when}` : '☁️ Chưa đồng bộ';
+  return `<div class="small mt row" style="align-items:center;gap:8px"><span>${s}${n ? ` · ✏️ ${n} mục đã sửa` : ''}</span>${SYNC.st !== 'dang' ? '<button class="btn ghost" style="min-height:36px;padding:4px 12px" data-act="ghsync">Đồng bộ ngay</button>' : ''}</div>`;
+}
+
+/* ---- Khung sửa ---- */
+function edRows(v) { v = String(v || ''); return Math.min(14, Math.max(2, Math.ceil(v.length / 55) + (v.match(/\n/g) || []).length)); }
+function editForm(x) {
+  const o = ORIG[x.id] || {};
+  const one = ([k, lb]) => { const v = x[k] || '', ch = (v || '') !== (o[k] || '');
+    return `<label class="edl">${esc(lb)}${ED_REQ[k] ? ' *' : ''}${ch ? ' <span class="pill acc">đã sửa</span>' : ''}</label><textarea data-f="${k}" rows="${edRows(v)}">${esc(v)}</textarea>`; };
+  const shown = ED_FIELDS.filter(([k]) => ED_CORE.has(k) || x[k] || o[k]), empty = ED_FIELDS.filter(f => !shown.includes(f));
+  return `<form class="edf" data-id="${esc(x.id)}" onsubmit="return false">
+    <div class="flash">✏️ Sửa mục ${esc(x.id)}</div>
+    ${shown.map(one).join('')}
+    ${empty.length ? `<details class="mt"><summary class="small">Ô đang trống (${empty.length}) — mở để điền thêm</summary>${empty.map(one).join('')}</details>` : ''}
+    <div class="small muted mt">Dấu || ngăn các ý trong danh sách; ⇒ ngăn câu hỏi và đáp án. Bỏ trống một ô = xoá nội dung ô đó (trừ ô có *).</div>
+    <div class="row mt"><button class="btn primary" data-act="bksave">💾 Lưu${ghCfg().token ? ' lên GitHub' : ''}</button><button class="btn" data-act="bkcancel">Huỷ</button>
+    ${isEdited(x.id) ? '<button class="btn ghost" data-act="bkrestore">↺ Về bản gốc</button>' : ''}</div></form>`;
+}
+function bookSave(form) {
+  const id = form.dataset.id, x = BYID[id], o = ORIG[id] || {}; if (!x) return;
+  const val = {}; form.querySelectorAll('textarea[data-f]').forEach(t => val[t.dataset.f] = t.value.replace(/\r/g, '').trim());
+  const miss = Object.keys(ED_REQ).filter(k => !val[k]);
+  if (miss.length) { toast('Không được bỏ trống: ' + miss.map(k => ED_REQ[k]).join(', ')); return; }
+  const same = ED_FIELDS.every(([k]) => (val[k] || '') === (x[k] || ''));
+  if (same) { BOOK_ED = null; render(); toast('Không có thay đổi.'); return; }
+  const f = {}; ED_FIELDS.forEach(([k]) => { if ((val[k] || '') !== (o[k] || '')) f[k] = val[k] || ''; });
+  ST.muc[id] = Object.keys(f).length ? { f, t: Date.now() } : { goc: 1, t: Date.now() };
+  if (!ST.cho.includes(id)) ST.cho.push(id);
+  stSave(); applyEdits(); BOOK_ED = null; BOOK_OPEN.add(id); render();
+  if (ghCfg().token) syncNow(false); else toast('Đã lưu trong máy này. Thêm token GitHub (Cài đặt) để lưu lên mọi thiết bị.');
+}
+function bookRestore(id) {
+  if (!confirm('Bỏ mọi chỗ đã sửa của mục này và về nội dung gốc?')) return;
+  ST.muc[id] = { goc: 1, t: Date.now() }; if (!ST.cho.includes(id)) ST.cho.push(id);
+  stSave(); applyEdits(); BOOK_ED = null; render();
+  if (ghCfg().token) syncNow(false); else toast('Đã về bản gốc trong máy này.');
+}
+function ghCard() {
+  const c = ghCfg(), n = editedCount();
+  return `<div class="card" id="ghcard"><h2>☁️ Lưu Sổ tay lên GitHub</h2>
+    <div class="small">Mục đã sửa trong Sổ tay được ghi vào file <b>${esc(c.path)}</b> của repo <b>${esc(c.owner)}/${esc(c.repo)}</b>. Mọi máy mở app (kể cả <b>${esc(c.owner)}.github.io/${esc(c.repo)}</b>) tự đọc file này — máy chỉ xem không cần token.</div>
+    ${syncLine()}
+    <div class="row mt"><input type="text" id="ghOwner" value="${esc(c.owner)}" placeholder="tài khoản GitHub" style="flex:1;min-width:140px"><input type="text" id="ghRepo" value="${esc(c.repo)}" placeholder="repo" style="flex:1;min-width:110px"></div>
+    <input type="password" id="ghTok" class="mt" autocomplete="off" placeholder="${c.token ? 'Đã lưu token ••••' + esc(c.token.slice(-4)) + ' — dán token mới để thay' : 'Dán token GitHub (github_pat_…) để được sửa trên máy này'}" style="width:100%">
+    <div class="row mt"><button class="btn primary" data-act="ghsave">Lưu & kiểm tra</button>${c.token ? '<button class="btn" data-act="ghdel">Xoá token khỏi máy này</button>' : ''}${n ? '<button class="btn ghost" data-act="ghbackup">Tải bản sửa (.json)</button>' : ''}</div>
+    <div id="ghMsg"></div>
+    <details class="mt"><summary class="small">Cách tạo token (làm 1 lần, ~2 phút)</summary><ol class="small">
+      <li>Mở <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a> (đăng nhập tài khoản ${esc(c.owner)}).</li>
+      <li>Token name: <b>MindGym sổ tay</b>; Expiration: chọn thời hạn (hết hạn thì tạo lại).</li>
+      <li>Repository access: <b>Only select repositories</b> → chọn <b>${esc(c.repo)}</b>.</li>
+      <li>Permissions → Repository permissions → <b>Contents: Read and write</b> (chỉ cần quyền này).</li>
+      <li>Bấm Generate token, chép mã <code>github_pat_…</code> rồi dán vào ô trên, bấm «Lưu & kiểm tra». Làm vậy trên từng máy Min muốn dùng để sửa.</li>
+    </ol><div class="small muted">Token chỉ lưu trong trình duyệt của máy này, chỉ có quyền ghi vào repo ${esc(c.repo)}. Chỉ dán trên máy của Min; nếu mất máy, vào GitHub → Settings → Personal access tokens để xoá token.</div></details></div>`;
+}
+async function ghSave() {
+  const msg = $('#ghMsg'), c = store.get(KEY_GH, null) || {};
+  const tok = ($('#ghTok').value || '').trim();
+  c.owner = ($('#ghOwner').value || '').trim() || undefined; c.repo = ($('#ghRepo').value || '').trim() || undefined;
+  if (tok) c.token = tok;
+  const cfg = Object.assign(ghCfg(), c);
+  if (msg) msg.innerHTML = '<div class="small mt">Đang kiểm tra…</div>';
+  try {
+    const r = await ghFetch(`https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}`, null, cfg);
+    const j = await r.json().catch(() => null);
+    if (!r.ok) throw new Error(ghErr(r, j));
+    if (cfg.token && j && j.permissions && j.permissions.push === false) throw new Error('Token đọc được repo nhưng không có quyền ghi.');
+    store.set(KEY_GH, c); toast(cfg.token ? 'Đã lưu token. Máy này lưu được Sổ tay lên GitHub.' : 'Đã lưu tên repo.');
+    await syncNow(true); render();
+  } catch (e) { if (msg) msg.innerHTML = `<div class="err">${esc(e instanceof TypeError ? 'Không kết nối được GitHub (mất mạng?).' : e.message)}</div>`; }
+}
+document.addEventListener('toggle', e => { const d = e.target; if (d && d.matches && d.matches('details[data-bid]')) { if (d.open) BOOK_OPEN.add(d.dataset.bid); else BOOK_OPEN.delete(d.dataset.bid); } }, true);
+document.addEventListener('input', e => { if (e.target.matches && e.target.matches('.edf textarea')) { const t = e.target; t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; } });
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  switch (b.dataset.act) {
+    case 'bked': BOOK_ED = b.dataset.id; BOOK_OPEN.add(b.dataset.id); render(); { const f = document.querySelector('.edf'); if (f) f.scrollIntoView({ block: 'start' }); } break;
+    case 'bkcancel': { const id = BOOK_ED; BOOK_ED = null; render(); const d = id && document.querySelector(`details[data-bid="${CSS.escape(id)}"]`); if (d) d.scrollIntoView({ block: 'start' }); break; }
+    case 'bksave': bookSave(b.closest('.edf')); break;
+    case 'bkrestore': bookRestore(b.closest('.edf').dataset.id); break;
+    case 'ghsync': syncNow(false); render(); break;
+    case 'ghsave': ghSave(); break;
+    case 'ghdel': { const c = store.get(KEY_GH, null) || {}; delete c.token; store.set(KEY_GH, c); render(); toast('Đã xoá token khỏi máy này.'); break; }
+    case 'gogh': go('settings'); setTimeout(() => { const g = $('#ghcard'); if (g) g.scrollIntoView({ block: 'start' }); }, 30); break;
+    case 'ghbackup': { const blob = new Blob([JSON.stringify({ app: 'MindGym', loai: 'so_tay_sua', v: 1, cap_nhat: new Date().toISOString(), muc: ST.muc }, null, 1)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob); const l = document.createElement('a'); l.href = url; l.download = `so_tay_sua_${today()}.json`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); break; }
+  }
+});
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && ST && Date.now() - (ST.dong_bo || 0) > 60000) syncNow(true); });
 
 /* ================== Khung CHI TIẾT (v1.1) ================== */
 let CT_STACK = [];
@@ -1501,11 +1714,11 @@ function viewSettings() {
   <div class="card"><h2>Tiến độ</h2><div class="row"><button class="btn" data-act="progexport">Xuất tiến độ (.json)</button>
     <label class="btn">Nhập tiến độ<input type="file" id="fileProg" accept=".json" class="hidden"></label>
     <button class="btn bad" data-act="progreset">Xoá tiến độ hồ sơ này</button></div></div>
-  ${viewShortcuts()}${viewFeedback()}
+  ${ghCard()}${viewShortcuts()}${viewFeedback()}
   <div class="card"><h2>Chế độ thử</h2><div class="small muted">Dành cho Min kiểm tra luồng học mà không phải chờ ngày thật. Tắt khi dùng thật.</div>
     <label class="small mt">Coi hôm nay là</label><select id="dayOv"><option value="">Theo lịch thật</option>${[1,2,3,4,5,6,0].map(d => `<option value="${d}" ${String(P.dayOverride) === String(d) ? 'selected' : ''}>${DAYNAME[d]}</option>`).join('')}</select>
     <div class="row mt"><button class="btn" data-act="dayplus">Giả lập sang ngày mới (+1)</button><button class="btn" data-act="dayzero" ${P.offset ? '' : 'disabled'}>Về ngày thật (đang +${P.offset || 0})</button></div></div>
-  <div class="card small muted">MindGym v1.4 · chạy không cần mạng · phím tắt: <span class="kbd">1</span>–<span class="kbd">4</span> chọn, <span class="kbd">Enter</span> tiếp, <span class="kbd">Ctrl+Enter</span> so bản chuẩn · <span class="kbd">C</span> <span class="kbd">D</span> <span class="kbd">N</span> <span class="kbd">H</span> <span class="kbd">A</span> vào nhanh.</div>`;
+  <div class="card small muted">MindGym v1.5 · chạy không cần mạng (Sổ tay đồng bộ GitHub khi có mạng) · phím tắt: <span class="kbd">1</span>–<span class="kbd">4</span> chọn, <span class="kbd">Enter</span> tiếp, <span class="kbd">Ctrl+Enter</span> so bản chuẩn · <span class="kbd">C</span> <span class="kbd">D</span> <span class="kbd">N</span> <span class="kbd">H</span> <span class="kbd">A</span> vào nhanh.</div>`;
 }
 
 /* ================== Đọc file .xlsx (không thư viện) ================== */
@@ -1699,8 +1912,9 @@ document.addEventListener('keydown', e => {
   if (!th) { try { th = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'; } catch (e) { th = 'dark'; } }
   document.documentElement.dataset.theme = th;
   loadBank(); loadProfiles(); render();
-  uxLog('mo_app', { rong: window.innerWidth, cao: window.innerHeight, ban: '1.4', link: location.hash || '' });
+  uxLog('mo_app', { rong: window.innerWidth, cao: window.innerHeight, ban: '1.5', link: location.hash || '' });
   routeHash(); window.addEventListener('hashchange', routeHash);
+  syncNow(true);   // v1.5: đọc bản sửa Sổ tay mới nhất trên GitHub
 })();
 </script>
 </body>
